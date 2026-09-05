@@ -10,7 +10,7 @@
 <body>
 <div class="login" id="login">
   <div class="login-box">
-    <div class="login-brand"><div id="loginLogo"></div><div><h1>SLS Breakage Input</h1><div class="sub">Web input incident · langsung untuk SPV RDC</div></div></div>
+    <div class="login-brand"><div id="loginLogo"></div><div><h1>SLS Breakage Input</h1><div class="sub">Web incident · Admin RDC input · SPV Submit/Approve</div></div></div>
     <label style="font-size:11px;font-weight:850">User ID</label>
     <input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="User ID">
     <label style="font-size:11px;font-weight:850">Password</label>
@@ -29,7 +29,7 @@
   </header>
   <div class="wrap">
     <section id="home">
-      <div class="hero"><h2>Input incident dari lapangan</h2><p>SPV RDC melakukan verifikasi lalu mencatat incident. Rekap, trend, KPI, dan analisa dilakukan di SLS Breakage Monitoring / Control Tower.</p></div>
+      <div class="hero"><h2>Input incident dari lapangan</h2><p>Admin RDC mencatat incident sebagai Draft. SPV RDC melakukan review lalu Submit/Approve. Master melakukan review dan adjustment di SLS Breakage Monitoring.</p></div>
       <div class="master-scope" id="masterScope"><b>RDC untuk input:</b><select id="scope"><option>Jakarta</option><option>Semarang</option><option>Surabaya</option><option>Denpasar</option><option>Palembang</option></select></div>
       <div class="quick">
         <div class="qcard"><div class="qlabel">RDC LOGIN</div><div class="qvalue" id="rdcCard">—</div><div class="sub">Otomatis dari akses user</div></div>
@@ -40,7 +40,7 @@
       <div id="roleMsg" class="hint hidden"></div>
       <div class="panel">
         <div class="panel-head"><h3>Riwayat Incident Terbaru</h3><div class="grow"></div><select id="period"></select></div>
-        <div class="tablewrap"><table><thead><tr><th>Incident</th><th>Tanggal</th><th>Jenis</th><th>Item</th><th>Qty</th><th>No BA</th><th>Reported By</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        <div class="tablewrap"><table><thead><tr><th>Incident</th><th>Tanggal</th><th>Jenis</th><th>Item</th><th>Qty</th><th>No BA</th><th>Reported By</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="historyBody"></tbody></table></div>
       </div>
     </section>
   </div>
@@ -63,7 +63,7 @@
     <div class="photo-area" style="margin-top:9px"><b style="font-size:12px">Evidence Foto 1–5 *</b><div class="smallnote">Gunakan kamera HP atau pilih dari galeri.</div><div class="photo-actions"><label for="fPhotos">Ambil Foto / Pilih Galeri</label><input type="file" id="fPhotos" accept="image/jpeg,image/png" multiple capture="environment" hidden></div><div class="photo-preview" id="photoPreview"></div></div>
     <div class="errorbox hidden" id="inputMsg"></div>
   </div>
-  <div class="modal-foot"><button class="secondary" id="saveDraft">Simpan Draft</button><button class="primary" id="submitIncident">Submit Incident</button></div>
+  <div class="modal-foot"><button class="secondary" id="saveDraft">Simpan Draft Lokal</button><button class="primary" id="submitIncident">Simpan Draft ke Sistem</button></div>
 </div></div>
 
 <script src="app.js"></script>
