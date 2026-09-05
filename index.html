@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#062b61">
+<title>SLS Breakage Incident Input</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="login" id="login">
+  <div class="login-box">
+    <div class="login-brand"><div id="loginLogo"></div><div><h1>SLS Breakage Input</h1><div class="sub">Web input incident · langsung untuk SPV RDC</div></div></div>
+    <label style="font-size:11px;font-weight:850">User ID</label>
+    <input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="User ID">
+    <label style="font-size:11px;font-weight:850">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="primary full" id="loginBtn">Masuk ke Input Breakage</button>
+    <div class="login-msg" id="loginMsg"></div>
+    <div class="sub">Scope RDC dan hak input ditentukan otomatis dari akun. Tidak perlu masuk ke Control Tower.</div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div><div class="top-title">SLS BREAKAGE INPUT</div><div class="top-meta" id="who">—</div></div>
+    <div class="grow"></div>
+    <button class="top-btn" id="logoutBtn">Keluar</button>
+  </header>
+  <div class="wrap">
+    <section id="home">
+      <div class="hero"><h2>Input incident dari lapangan</h2><p>SPV RDC melakukan verifikasi lalu mencatat incident. Rekap, trend, KPI, dan analisa dilakukan di SLS Breakage Monitoring / Control Tower.</p></div>
+      <div class="master-scope" id="masterScope"><b>RDC untuk input:</b><select id="scope"><option>Jakarta</option><option>Semarang</option><option>Surabaya</option><option>Denpasar</option><option>Palembang</option></select></div>
+      <div class="quick">
+        <div class="qcard"><div class="qlabel">RDC LOGIN</div><div class="qvalue" id="rdcCard">—</div><div class="sub">Otomatis dari akses user</div></div>
+        <div class="qcard"><div class="qlabel">INCIDENT BULAN INI</div><div class="qvalue" id="countCard">—</div><div class="sub" id="periodLabel">—</div></div>
+        <div class="qcard"><div class="qlabel">TOTAL QTY</div><div class="qvalue" id="qtyCard">—</div><div class="sub">BOX tercatat</div></div>
+      </div>
+      <div class="actions"><button class="primary" id="newBtn">＋ Input Breakage Baru</button><button class="secondary" id="refreshBtn">↻ Refresh Riwayat</button></div>
+      <div id="roleMsg" class="hint hidden"></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Riwayat Incident Terbaru</h3><div class="grow"></div><select id="period"></select></div>
+        <div class="tablewrap"><table><thead><tr><th>Incident</th><th>Tanggal</th><th>Jenis</th><th>Item</th><th>Qty</th><th>No BA</th><th>Reported By</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+      </div>
+    </section>
+  </div>
+  <nav class="bottomnav"><button id="navHome"><b>⌂</b>Beranda</button><button id="navInput"><b>＋</b>Input</button><button id="navHistory"><b>▥</b>Riwayat</button><button id="navLogout"><b>⇥</b>Logout</button></nav>
+</div>
+
+<div class="overlay" id="incidentModal"><div class="modal">
+  <div class="modal-head"><div><h2>Input Breakage Incident</h2><div id="inputIdentity" style="font-size:10.5px;opacity:.82"></div></div><button class="close" id="closeModal">✕</button></div>
+  <div class="modal-body">
+    <div class="smallnote" style="display:flex;justify-content:space-between;gap:8px"><span>Input berdasarkan laporan team lapangan</span><span style="color:#079455;font-weight:800" id="draftStatus">Draft otomatis tersimpan</span></div>
+    <div class="form-grid" style="margin-top:10px"><div class="field readonly"><label>RDC (otomatis)</label><input id="fRdc" disabled></div><div class="field readonly"><label>Input By (otomatis)</label><input id="fInputBy" disabled></div></div>
+    <div class="field span2" style="margin-top:10px"><label>Jenis Kejadian *</label><div class="type-tabs" id="typeTabs"><button data-type="receiving">Penerimaan</button><button data-type="delivery" class="active">Pengiriman</button><button data-type="warehouse">Gudang</button></div><div class="hint" style="margin-top:9px">Receiving dicatat sebagai qty/control volume dan tidak otomatis masuk Delivery/Warehouse Rate.</div></div>
+    <div class="form-grid" style="margin-top:9px">
+      <div class="field"><label>Tanggal Kejadian *</label><input type="date" id="fDate"></div><div class="field"><label>No BA *</label><input id="fBa" placeholder="Contoh: BA/JK/0926/001"></div>
+      <div class="field"><label>Kode Item *</label><input id="fItem" placeholder="Kode item"></div><div class="field"><label>Qty *</label><div style="display:flex"><input type="number" min="0.01" step="0.01" id="fQty"><b style="font-size:11px;padding:4px">BOX</b></div></div>
+      <div class="field span2"><label>Reported By (Nama Team Lapangan) *</label><input id="fReported" placeholder="Nama pelapor"></div>
+    </div>
+    <div id="conditional" style="margin-top:9px"></div>
+    <div class="field" style="margin-top:9px"><label>Penyebab *</label><div class="cause-tabs" id="causeTabs"><button data-cause="Perjalanan" class="active">Perjalanan</button><button data-cause="Susunan">Susunan</button><button data-cause="Packaging / Pallet">Packaging / Pallet</button><button data-cause="Lainnya">Lainnya</button></div><textarea id="fCauseDetail" maxlength="300" placeholder="Keterangan penyebab / kejadian secara singkat" style="margin-top:7px"></textarea></div>
+    <div class="photo-area" style="margin-top:9px"><b style="font-size:12px">Evidence Foto 1–5 *</b><div class="smallnote">Gunakan kamera HP atau pilih dari galeri.</div><div class="photo-actions"><label for="fPhotos">Ambil Foto / Pilih Galeri</label><input type="file" id="fPhotos" accept="image/jpeg,image/png" multiple capture="environment" hidden></div><div class="photo-preview" id="photoPreview"></div></div>
+    <div class="errorbox hidden" id="inputMsg"></div>
+  </div>
+  <div class="modal-foot"><button class="secondary" id="saveDraft">Simpan Draft</button><button class="primary" id="submitIncident">Submit Incident</button></div>
+</div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
