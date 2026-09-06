@@ -1,0 +1,6 @@
+Force Vercel production redeploy for SLS Breakage Input BUILD v51.
+Expected production source:
+- index.html loads runtime_patch.js and spv_evidence_guard_v51.js
+- runtime v50 compression retained
+- SPV evidence completeness guard v51 enabled
+Timestamp: 2026-09-06
