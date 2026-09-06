@@ -157,3 +157,115 @@
   setTimeout(setBuild,1000);
   window.__SLS_BREAKAGE_INPUT_EVIDENCE_GUARD='v53';
 })();
+
+// v61 — SPV correction/delete + month-end close UX.
+(function(){
+  const BUILD='BUILD v61';
+  const EDITABLE=new Set(['DRAFT','WAITING_SPV','RETURNED_ADMIN','APPROVED_SPV']);
+  const byId=id=>(INCIDENTS||[]).find(x=>Number(x.incident_id)===Number(id));
+  const val=id=>String(document.getElementById(id)?.value??'').trim();
+  const setBuild=()=>{const el=document.getElementById('slsBuildBadge');if(el)el.textContent=BUILD};
+
+  function ensureCorrectionUI(){
+    const body=document.querySelector('#reviewModal .modal-body');
+    const actions=$('reviewActions');
+    if(!body||!actions)return;
+    if(!document.getElementById('spvCorrection')){
+      const box=document.createElement('div');
+      box.id='spvCorrection';box.className='hint hidden';box.style.cssText='margin-top:14px;border-color:#bfd3ef;background:#f6f9fd';
+      box.innerHTML=`<div style="font-weight:900;margin-bottom:8px">Koreksi Data oleh SPV</div>
+      <div class="smallnote" style="margin-bottom:8px">No BA tidak dapat diubah. Evidence foto dikoreksi melalui Return ke Admin. Alasan koreksi wajib dan masuk audit trail.</div>
+      <div class="form-grid">
+        <div class="field"><label>Tanggal</label><input type="date" id="cDate"></div>
+        <div class="field"><label>Jenis</label><select id="cType"><option value="receiving">Penerimaan</option><option value="delivery">Pengiriman</option><option value="warehouse">Gudang</option></select></div>
+        <div class="field"><label>Kode Item</label><input id="cItem"></div>
+        <div class="field"><label>Qty BOX</label><input type="number" min="0.01" step="0.01" id="cQty"></div>
+        <div class="field span2"><label>Reported By</label><input id="cReported"></div>
+        <div class="field"><label>No SJ</label><input id="cNoSj"></div>
+        <div class="field"><label>Factory</label><select id="cFactory"><option value="">—</option><option>SRKI</option><option>RCI</option></select></div>
+        <div class="field"><label>Customer</label><input id="cCustomer"></div>
+        <div class="field"><label>Transporter</label><input id="cTransporter"></div>
+        <div class="field"><label>Driver</label><input id="cDriver"></div>
+        <div class="field"><label>No Polisi</label><input id="cVehicle"></div>
+        <div class="field"><label>Penyebab</label><select id="cCause"><option>Perjalanan</option><option>Susunan</option><option>Packaging / Pallet</option><option>Lainnya</option></select></div>
+        <div class="field"><label>Kejadian Gudang</label><select id="cWhEvent"><option value="">—</option><option>Pecah Dalam Pallet</option><option>Misshandling</option></select></div>
+        <div class="field span2"><label>Keterangan Penyebab</label><textarea id="cCauseDetail" maxlength="300"></textarea></div>
+        <div class="field span2"><label>Nama Orang Terkait (Misshandling)</label><input id="cRelated"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="secondary" id="cancelCorrection">Batal</button><button class="primary" id="saveCorrection">Simpan Revisi</button></div>`;
+      body.insertBefore(box,$('reviewMsg'));
+      $('cancelCorrection').onclick=()=>box.classList.add('hidden');
+      $('saveCorrection').onclick=saveSpvCorrection;
+    }
+    if(!document.getElementById('spvReviseBtn')){
+      const revise=document.createElement('button');revise.id='spvReviseBtn';revise.className='secondary';revise.textContent='✎ Revisi Data';
+      const del=document.createElement('button');del.id='spvDeleteBtn';del.className='secondary';del.style.cssText='border-color:#f1b8b5;color:#b42318';del.textContent='Hapus Incident';
+      actions.insertBefore(revise,actions.firstChild);actions.insertBefore(del,actions.firstChild);
+      revise.onclick=()=>openCorrection();del.onclick=()=>deleteSpvIncident();
+    }
+  }
+
+  function fillCorrection(r){
+    const map={cDate:r.occurrence_date,cType:r.incident_type,cItem:r.item_code,cQty:r.qty_box,cReported:r.reported_by,cNoSj:r.no_sj,cFactory:r.factory,cCustomer:r.customer,cTransporter:r.transporter,cDriver:r.driver_name,cVehicle:r.vehicle_no,cCause:r.cause,cCauseDetail:r.cause_detail,cWhEvent:r.warehouse_event,cRelated:r.related_person};
+    Object.entries(map).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v??''});
+  }
+
+  function openCorrection(){
+    const r=byId(REVIEW_ID),box=document.getElementById('spvCorrection');if(!r||!box)return;
+    const reason=$('reviewNote').value.trim();
+    if(!reason){$('reviewMsg').textContent='Isi Catatan/Alasan SPV terlebih dahulu sebelum revisi.';$('reviewNote').focus();return;}
+    fillCorrection(r);box.classList.remove('hidden');$('reviewMsg').textContent='Ubah data yang salah lalu klik Simpan Revisi.';
+  }
+
+  async function saveSpvCorrection(){
+    if(REVIEW_BUSY||!REVIEW_ID)return;
+    const reason=$('reviewNote').value.trim();if(!reason){$('reviewMsg').textContent='Alasan revisi wajib.';return;}
+    const changes={occurrence_date:val('cDate'),incident_type:val('cType'),item_code:val('cItem').toUpperCase(),qty_box:Number(val('cQty')),reported_by:val('cReported').toUpperCase(),no_sj:val('cNoSj').toUpperCase(),factory:val('cFactory').toUpperCase(),customer:val('cCustomer').toUpperCase(),transporter:val('cTransporter').toUpperCase(),driver_name:val('cDriver').toUpperCase(),vehicle_no:val('cVehicle').toUpperCase(),cause:val('cCause'),cause_detail:val('cCauseDetail').toUpperCase(),warehouse_event:val('cWhEvent'),related_person:val('cRelated').toUpperCase()};
+    REVIEW_BUSY=true;$('reviewMsg').textContent='Menyimpan revisi SPV…';
+    try{await rpc('breakage_incident_spv_correct_v61',{p_incident_id:REVIEW_ID,p_action:'REVISE',p_reason:reason,p_changes:changes});REVIEW_BUSY=false;closeReview();await loadHistory();}
+    catch(e){$('reviewMsg').textContent='Revisi gagal: '+cleanErr(e?.message||String(e));}
+    finally{REVIEW_BUSY=false;const box=document.getElementById('spvCorrection');if(box)box.classList.add('hidden');setBuild()}
+  }
+
+  async function deleteSpvIncident(){
+    if(REVIEW_BUSY||!REVIEW_ID)return;
+    const b=$('spvDeleteBtn'),reason=$('reviewNote').value.trim();
+    if(!reason){$('reviewMsg').textContent='Alasan penghapusan wajib diisi pada Catatan/Alasan SPV.';$('reviewNote').focus();return;}
+    if(b.dataset.confirm!=='1'){
+      b.dataset.confirm='1';b.textContent='Konfirmasi Hapus';$('reviewMsg').textContent='Klik “Konfirmasi Hapus” sekali lagi. Incident akan hilang dari operasional/KPI tetapi audit trail tetap disimpan.';return;
+    }
+    REVIEW_BUSY=true;b.disabled=true;$('reviewMsg').textContent='Menghapus incident…';
+    try{await rpc('breakage_incident_spv_correct_v61',{p_incident_id:REVIEW_ID,p_action:'DELETE',p_reason:reason,p_changes:{}});REVIEW_BUSY=false;closeReview();await loadHistory();}
+    catch(e){$('reviewMsg').textContent='Hapus gagal: '+cleanErr(e?.message||String(e));}
+    finally{REVIEW_BUSY=false;b.disabled=false;b.dataset.confirm='0';b.textContent='Hapus Incident';setBuild()}
+  }
+
+  ensureCorrectionUI();
+  if(typeof viewIncident==='function'){
+    const baseViewV61=viewIncident;
+    viewIncident=async function(id){
+      await baseViewV61(id);ensureCorrectionUI();setBuild();
+      const r=byId(id),st=String(r?.status||'').toUpperCase(),can=!!ACCESS?.can_submit_approve&&EDITABLE.has(st);
+      const box=$('spvCorrection');if(box)box.classList.add('hidden');
+      ['spvReviseBtn','spvDeleteBtn'].forEach(x=>{const e=$(x);if(e)e.classList.toggle('hidden',!can)});
+      if(can){
+        $('reviewActions').classList.remove('hidden');
+        $('reviewControls').classList.remove('hidden');
+        const label=$('reviewNote')?.previousElementSibling;if(label)label.textContent='Catatan / Alasan SPV (wajib untuk Return, Revisi, Hapus)';
+        if($('spvDeleteBtn')){$('spvDeleteBtn').dataset.confirm='0';$('spvDeleteBtn').textContent='Hapus Incident'}
+        if(!['DRAFT','WAITING_SPV'].includes(st)){$('returnReview').classList.add('hidden');$('approveReview').classList.add('hidden')}
+        else{$('returnReview').classList.remove('hidden');$('approveReview').classList.remove('hidden')}
+      }
+    };
+    window.viewIncident=viewIncident;
+  }
+
+  if(typeof loadHistory==='function'){
+    const baseLoadV61=loadHistory;loadHistory=async function(){try{return await baseLoadV61.apply(this,arguments)}finally{setBuild()}};window.loadHistory=loadHistory;
+  }
+  if(typeof showApp==='function'){
+    const baseShowV61=showApp;showApp=function(){const out=baseShowV61.apply(this,arguments);if(ACCESS?.can_submit_approve)$('roleMsg').innerHTML='<b>SPV RDC:</b> review Draft, koreksi/hapus data salah, lalu Approve atau Return. Periode bulan lalu otomatis CLOSED.';setBuild();return out};window.showApp=showApp;
+  }
+  setBuild();setTimeout(setBuild,300);setTimeout(setBuild,1200);
+  window.__SLS_BREAKAGE_INPUT_GOVERNANCE='v61';
+})();
