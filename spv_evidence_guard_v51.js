@@ -9,6 +9,27 @@
   }
   setBuild();
 
+  // runtime_patch v50 still owns compression/session logic and calls ensureBuildBadge()
+  // during history refresh. Re-assert v51 after every app render/history load so the
+  // displayed build reflects the active SPV evidence guard instead of falling back to v50.
+  if(typeof loadHistory==='function'){
+    const baseLoadHistoryV51=loadHistory;
+    loadHistory=async function(){
+      try{return await baseLoadHistoryV51.apply(this,arguments)}
+      finally{setBuild()}
+    };
+    window.loadHistory=loadHistory;
+  }
+  if(typeof showApp==='function'){
+    const baseShowAppV51=showApp;
+    showApp=function(){
+      const out=baseShowAppV51.apply(this,arguments);
+      setBuild();
+      return out;
+    };
+    window.showApp=showApp;
+  }
+
   function incidentById(id){return (INCIDENTS||[]).find(x=>Number(x.incident_id)===Number(id))}
   function requiredEvidence(r){const q=Number(r?.qty_box||0);return q>0?Math.max(1,Math.ceil(q)):1}
   function evidenceCount(r){return Array.isArray(r?.photo_paths)?r.photo_paths.filter(Boolean).length:0}
@@ -34,6 +55,7 @@
     const baseViewIncident=viewIncident;
     viewIncident=async function(id){
       await baseViewIncident(id);
+      setBuild();
       const r=incidentById(id);if(!r)return;
       renderEvidenceRule(r);
       if(!evidenceComplete(r)){
@@ -57,16 +79,19 @@
       const r=incidentById(REVIEW_ID);
       if(decision==='APPROVE'&&r&&!evidenceComplete(r)){
         $('reviewMsg').textContent=`Approval ditahan: evidence baru ${evidenceCount(r)}/${requiredEvidence(r)} foto. Minimal 1 foto per BOX pecah.`;
+        setBuild();
         return;
       }
-      return baseSubmitSpvReview(decision);
+      try{return await baseSubmitSpvReview(decision)}
+      finally{setBuild()}
     };
     window.submitSpvReview=submitSpvReview;
     $('returnReview').onclick=()=>submitSpvReview('RETURN');
     $('approveReview').onclick=()=>submitSpvReview('APPROVE');
   }
 
-  // Re-assert build label after login/render.
+  // Re-assert after runtime's delayed initialization as an additional safeguard.
   setTimeout(setBuild,200);
+  setTimeout(setBuild,1000);
   window.__SLS_BREAKAGE_INPUT_EVIDENCE_GUARD='v51';
 })();
