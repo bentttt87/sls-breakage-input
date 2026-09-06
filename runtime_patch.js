@@ -1,8 +1,8 @@
-// SLS Breakage Input runtime hardening v49
-// Auth/session hardening + multi-photo evidence + client-side compression.
+// SLS Breakage Input runtime hardening v50
+// Auth/session hardening + 1 evidence photo per broken BOX + client-side compression.
 (function(){
-  const PATCH_VERSION='v49-photo-per-box-compression-20260906';
-  const BUILD_LABEL='BUILD v49';
+  const PATCH_VERSION='v50-photo-per-box-compression-20260906';
+  const BUILD_LABEL='BUILD v50';
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   let PREVIEW_URLS=[];
 
@@ -29,16 +29,12 @@
   window.slsRefreshBreakageSession=refreshSession;
 
   async function authedFetch(url,opts={},networkRetries=2){
-    await refreshSession(false).catch(()=>false);
-    let lastErr,refreshed=false;
+    await refreshSession(false).catch(()=>false);let lastErr,refreshed=false;
     for(let attempt=0;attempt<=networkRetries;attempt++){
       try{
         const headers={...(opts.headers||{}),apikey:PUBLIC_ANON,Authorization:`Bearer ${auth()}`};
         const r=await fetch(url,{...opts,cache:'no-store',signal:opts.signal||AbortSignal.timeout(25000),headers});
-        if((r.status===401||r.status===403)&&SESSION?.refresh_token&&!refreshed){
-          const body=await r.clone().text().catch(()=> '');
-          if(r.status===401||/jwt|token|unauthori|accessdenied|row-level security/i.test(body)){refreshed=true;if(await refreshSession(true).catch(()=>false))continue}
-        }
+        if((r.status===401||r.status===403)&&SESSION?.refresh_token&&!refreshed){const body=await r.clone().text().catch(()=> '');if(r.status===401||/jwt|token|unauthori|accessdenied|row-level security/i.test(body)){refreshed=true;if(await refreshSession(true).catch(()=>false))continue}}
         return r;
       }catch(e){lastErr=e;if(attempt===networkRetries)throw e;await sleep(500*(attempt+1))}
     }
@@ -58,38 +54,31 @@
   function updateEvidenceRequirement(){
     const area=document.querySelector('.photo-area');if(!area)return;
     const title=area.querySelector('b');if(title)title.textContent='Evidence Foto — 1 foto per BOX pecah *';
-    const note=area.querySelector('.smallnote');if(note){const req=requiredPhotoCount(),got=totalEvidenceCount();note.innerHTML=`Qty <b>${Number($('fQty')?.value||0)||'—'} BOX</b> = minimal <b>${req} foto</b>. Saat ini <b>${got}</b> foto. Foto dikompres otomatis sebelum upload untuk menghemat storage.`}
+    const note=area.querySelector('.smallnote');if(note){const req=requiredPhotoCount(),got=totalEvidenceCount(),qty=Number($('fQty')?.value||0);note.innerHTML=`Qty <b>${qty||'—'} BOX</b> = minimal <b>${req} foto</b>. Saat ini <b>${got}</b> foto. Foto dikompres otomatis sebelum upload untuk menghemat storage.`}
   }
-  function injectEvidenceStyle(){if(document.getElementById('evidenceV49Style'))return;const s=document.createElement('style');s.id='evidenceV49Style';s.textContent='.photo-preview{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important}.ph{aspect-ratio:4/3!important}.ph .ph-remove{position:absolute;right:4px;top:4px;z-index:2;border:0;border-radius:50%;width:24px;height:24px;background:rgba(190,35,35,.92);color:#fff;font-weight:900;line-height:24px;padding:0}.ph .ph-tag{position:absolute;left:5px;bottom:5px;background:rgba(0,28,67,.82);color:#fff;padding:3px 6px;border-radius:5px;font-size:9px;font-weight:800}';document.head.appendChild(s)}
+  function injectEvidenceStyle(){
+    if(document.getElementById('evidenceV50Style'))return;
+    const s=document.createElement('style');s.id='evidenceV50Style';s.textContent='.photo-preview{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important}.ph{aspect-ratio:4/3!important}.ph .ph-remove{position:absolute;right:4px;top:4px;z-index:2;border:0;border-radius:50%;width:24px;height:24px;background:rgba(190,35,35,.92);color:#fff;font-weight:900;line-height:24px;padding:0}.ph .ph-tag{position:absolute;left:5px;bottom:5px;background:rgba(0,28,67,.82);color:#fff;padding:3px 6px;border-radius:5px;font-size:9px;font-weight:800}';document.head.appendChild(s)
+  }
   injectEvidenceStyle();
 
   renderPhotos=function(){
     PREVIEW_URLS.forEach(u=>URL.revokeObjectURL(u));PREVIEW_URLS=[];
-    const existing=(EXISTING_PHOTO_PATHS||[]).map((p,i)=>`<div class="ph"><div class="smallnote" style="padding:28px 8px;text-align:center">Foto existing</div><span class="ph-tag">Foto ${i+1}</span></div>`);
-    const offset=existing.length;
+    const existing=(EXISTING_PHOTO_PATHS||[]).map((p,i)=>`<div class="ph"><div class="smallnote" style="padding:28px 8px;text-align:center">Foto existing</div><span class="ph-tag">Foto ${i+1}</span></div>`),offset=existing.length;
     const fresh=(PHOTOS||[]).map((f,i)=>{const u=URL.createObjectURL(f);PREVIEW_URLS.push(u);return `<div class="ph"><img src="${u}" alt="Evidence ${offset+i+1}"><button type="button" class="ph-remove" onclick="removeNewEvidencePhoto(${i})" aria-label="Hapus foto ${offset+i+1}">×</button><span class="ph-tag">Foto ${offset+i+1}</span></div>`});
-    $('photoPreview').innerHTML=[...existing,...fresh].join('')||'<div class="smallnote" style="grid-column:1/-1;padding:12px 0">Belum ada foto evidence.</div>';
-    updateEvidenceRequirement();
+    $('photoPreview').innerHTML=[...existing,...fresh].join('')||'<div class="smallnote" style="grid-column:1/-1;padding:12px 0">Belum ada foto evidence.</div>';updateEvidenceRequirement();
   };
   window.removeNewEvidencePhoto=function(i){PHOTOS.splice(i,1);renderPhotos()};
 
   $('fPhotos').onchange=e=>{
-    const incoming=Array.from(e.target.files||[]);
-    const bad=incoming.find(f=>!['image/jpeg','image/png'].includes(f.type));
+    const incoming=Array.from(e.target.files||[]),bad=incoming.find(f=>!['image/jpeg','image/png'].includes(f.type));
     if(bad){alert('Format foto harus JPG atau PNG.');e.target.value='';return}
-    PHOTOS=[...(PHOTOS||[]),...incoming];
-    e.target.value='';
-    renderPhotos();
+    PHOTOS=[...(PHOTOS||[]),...incoming];e.target.value='';renderPhotos();
   };
   $('fQty')?.addEventListener('input',updateEvidenceRequirement);
 
   const baseValidateIncident=validateIncident;
-  validateIncident=function(){
-    const m=(baseValidateIncident?baseValidateIncident():[]).filter(x=>x!=='Foto');
-    const req=requiredPhotoCount(),got=totalEvidenceCount();
-    if(Number($('fQty')?.value||0)>0&&got<req)m.push(`Foto evidence minimal ${req} (1 foto per BOX; saat ini ${got})`);
-    return m;
-  };
+  validateIncident=function(){const m=(baseValidateIncident?baseValidateIncident():[]).filter(x=>x!=='Foto'),req=requiredPhotoCount(),got=totalEvidenceCount();if(Number($('fQty')?.value||0)>0&&got<req)m.push(`Foto evidence minimal ${req} (1 foto per BOX; saat ini ${got})`);return m};
 
   async function imageSource(file){
     if(window.createImageBitmap){try{return await createImageBitmap(file,{imageOrientation:'from-image'})}catch(_e){try{return await createImageBitmap(file)}catch(_e2){}}}
@@ -98,21 +87,19 @@
   async function canvasBlob(canvas,quality){return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Kompresi foto gagal')),'image/jpeg',quality))}
   async function compressEvidenceFile(file){
     if(!['image/jpeg','image/png'].includes(file.type))throw new Error('Format foto harus JPG atau PNG.');
-    const src=await imageSource(file),sw=src.width||src.naturalWidth,sh=src.height||src.naturalHeight;
-    if(!sw||!sh)throw new Error('Ukuran foto tidak valid.');
-    let maxEdge=1280,scale=Math.min(1,maxEdge/Math.max(sw,sh)),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale));
-    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(src,0,0,w,h);if(src.close)src.close();
+    const src=await imageSource(file),sw=src.width||src.naturalWidth,sh=src.height||src.naturalHeight;if(!sw||!sh)throw new Error('Ukuran foto tidak valid.');
+    const scale=Math.min(1,1280/Math.max(sw,sh)),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale)),canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(src,0,0,w,h);if(src.close)src.close();
     let blob=await canvasBlob(canvas,.72);if(blob.size>450*1024)blob=await canvasBlob(canvas,.60);
-    const name=(file.name||'evidence').replace(/\.[^.]+$/,'')+'.jpg';return new File([blob],name,{type:'image/jpeg',lastModified:Date.now()});
+    return new File([blob],(file.name||'evidence').replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
   }
 
   uploadEvidence=async function(files,rdc){
     if(!SESSION?.access_token)throw new Error('Sesi login tidak aktif. Silakan login kembali.');
     await refreshSession(false);const batch='draft_'+crypto.randomUUID(),paths=[],safe=String(rdc).replace(/[^A-Za-z0-9_-]/g,'_');
     for(let i=0;i<files.length;i++){
-      const compressed=await compressEvidenceFile(files[i]);
-      const path=`${safe}/${batch}/${Date.now()}_${i+1}.jpg`,encoded=path.split('/').map(encodeURIComponent).join('/');
-      const r=await authedFetch(`${SUPABASE_URL}/storage/v1/object/breakage-evidence/${encoded}`,{method:'POST',headers:{'Content-Type':'image/jpeg','x-upsert':'false','x-evidence-compressed':'v49'},body:compressed},2);
+      const compressed=await compressEvidenceFile(files[i]),path=`${safe}/${batch}/${Date.now()}_${i+1}.jpg`,encoded=path.split('/').map(encodeURIComponent).join('/');
+      const r=await authedFetch(`${SUPABASE_URL}/storage/v1/object/breakage-evidence/${encoded}`,{method:'POST',headers:{'Content-Type':'image/jpeg','x-upsert':'false'},body:compressed},2);
       if(!r.ok){const raw=await r.text();if(r.status!==409)throw new Error(`Upload foto ${i+1} gagal (HTTP ${r.status}): ${cleanErr(raw)}`)}paths.push(path);
     }
     return paths;
@@ -121,8 +108,7 @@
   evidenceBlob=async function(path){if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').includes('..'))throw new Error('Path evidence tidak valid');const encoded=path.split('/').map(encodeURIComponent).join('/'),r=await authedFetch(`${SUPABASE_URL}/storage/v1/object/authenticated/breakage-evidence/${encoded}`,{method:'GET'},2);if(!r.ok)throw new Error('Foto tidak dapat dibuka: '+cleanErr(await r.text()));const blob=await r.blob();if(!['image/jpeg','image/png'].includes(blob.type))throw new Error('Format evidence bukan JPEG/PNG');return blob};
 
   $('submitIncident').onclick=async()=>{
-    const miss=validateIncident(),msg=$('inputMsg');msg.classList.remove('hidden');
-    if(miss.length){msg.style.color='#c42d26';msg.textContent='Mohon lengkapi: '+miss.join(', ');return}
+    const miss=validateIncident(),msg=$('inputMsg');msg.classList.remove('hidden');if(miss.length){msg.style.color='#c42d26';msg.textContent='Mohon lengkapi: '+miss.join(', ');return}
     const b=$('submitIncident');b.disabled=true;msg.style.color='#6f7b91';msg.textContent=EDIT_ID?'Mengompresi foto & memperbarui Draft…':'Mengompresi foto & menyimpan Draft ke sistem…';
     try{
       const d=formData(),rdc=effectiveScope(),newPaths=PHOTOS.length?await uploadEvidence(PHOTOS,rdc):[],paths=[...(EXISTING_PHOTO_PATHS||[]),...newPaths];
@@ -133,10 +119,7 @@
     }catch(e){msg.style.color='#c42d26';msg.textContent='Gagal: '+cleanErr(e.message)}finally{b.disabled=false}
   };
 
-  $('refreshBtn').onclick=()=>loadHistory();
-  $('period').onchange=async e=>{PERIOD=e.target.value;$('periodLabel').textContent=monthName(PERIOD);await loadHistory()};
-  $('scope').onchange=async e=>{SCOPE=e.target.value;if(ACCESS?.is_master)$('rdcCard').textContent=SCOPE;await loadHistory()};
-
+  $('refreshBtn').onclick=()=>loadHistory();$('period').onchange=async e=>{PERIOD=e.target.value;$('periodLabel').textContent=monthName(PERIOD);await loadHistory()};$('scope').onchange=async e=>{SCOPE=e.target.value;if(ACCESS?.is_master)$('rdcCard').textContent=SCOPE;await loadHistory()};
   setTimeout(async()=>{ensureBuildBadge();updateEvidenceRequirement();if(!SESSION?.refresh_token)return;try{await refreshSession(false);if(!ACCESS)ACCESS=await rpc('breakage_my_access_v44',{});if(ACCESS&&$('app').style.display!=='none')await loadHistory()}catch(_e){}},100);
   window.__SLS_BREAKAGE_INPUT_PATCH=PATCH_VERSION;
 })();
