@@ -1,15 +1,27 @@
-// SLS Breakage Input runtime hardening v47
+// SLS Breakage Input runtime hardening v48
 // Keeps active Supabase Auth sessions fresh and makes RPC / evidence upload resilient.
 (function(){
-  const PATCH_VERSION='v47-auth-storage-20260906';
+  const PATCH_VERSION='v48-auth-storage-20260906';
+  const BUILD_LABEL='BUILD v48';
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+  function ensureBuildBadge(){
+    if(document.getElementById('slsBuildBadge'))return;
+    const bar=document.querySelector('.topbar');if(!bar)return;
+    const el=document.createElement('span');el.id='slsBuildBadge';el.textContent=BUILD_LABEL;
+    el.style.cssText='font-size:9px;font-weight:800;letter-spacing:.4px;padding:4px 7px;border:1px solid rgba(255,255,255,.28);border-radius:999px;opacity:.82;white-space:nowrap';
+    const grow=bar.querySelector('.grow');bar.insertBefore(el,grow||null);
+  }
+  ensureBuildBadge();
 
   function saveSession(){
     if(SESSION) sessionStorage.setItem('sls_breakage_input_session',JSON.stringify(SESSION));
   }
   function jwtExp(token){
     try{
-      const p=JSON.parse(atob(String(token).split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      let s=String(token||'').split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      s+='='.repeat((4-s.length%4)%4);
+      const p=JSON.parse(atob(s));
       return Number(p.exp||0);
     }catch(_e){return 0}
   }
@@ -71,6 +83,7 @@
   };
 
   loadHistory=async function(){
+    ensureBuildBadge();
     const s=effectiveScope();
     if(ACCESS?.is_master) $('rdcCard').textContent=s||'Pilih RDC';
     $('historyBody').innerHTML='<tr><td colspan="9"><div class="empty">Memuat riwayat…</div></td></tr>';
@@ -126,6 +139,7 @@
 
   // If a persisted session exists, refresh it quietly so storage/RPC calls do not use an expired JWT.
   setTimeout(async()=>{
+    ensureBuildBadge();
     if(!SESSION?.refresh_token) return;
     try{
       await refreshSession(false);
