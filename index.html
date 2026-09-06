@@ -67,5 +67,64 @@
 </div></div>
 
 <script src="app.js"></script>
+<script>
+// v46 hotfix: network retry + clearer Master scope UX.
+(function(){
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  rpc=async function(fn,params={}){
+    let lastErr;
+    for(let attempt=1;attempt<=3;attempt++){
+      try{
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+          method:'POST',cache:'no-store',
+          headers:{apikey:PUBLIC_ANON,Authorization:`Bearer ${auth()}`,'Content-Type':'application/json'},
+          body:JSON.stringify(params)
+        });
+        if(!r.ok) throw new Error(await r.text());
+        return await r.json();
+      }catch(e){
+        lastErr=e;
+        if(!(e instanceof TypeError) || attempt===3) break;
+        await sleep(450*attempt);
+      }
+    }
+    throw lastErr;
+  };
+
+  const originalShowApp=showApp;
+  showApp=function(){
+    originalShowApp();
+    if(ACCESS?.is_master){
+      const scopeLabel=document.querySelector('#masterScope b');
+      if(scopeLabel) scopeLabel.textContent='Filter RDC riwayat:';
+      const card=$('rdcCard')?.parentElement;
+      if(card){
+        const label=card.querySelector('.qlabel'); if(label) label.textContent='RDC TERPILIH';
+        const sub=card.querySelector('.sub'); if(sub) sub.textContent='Filter riwayat Master';
+      }
+      $('roleMsg').innerHTML='<b>MASTER:</b> app ini untuk melihat riwayat input. Review, adjustment dan final dilakukan di <a href="https://sls-breakage.vercel.app/" target="_blank" rel="noopener">Breakage Monitoring ↗</a>.';
+    }
+  };
+
+  loadHistory=async function(){
+    const s=effectiveScope();
+    if(ACCESS?.is_master) $('rdcCard').textContent=s||'Pilih RDC';
+    $('historyBody').innerHTML='<tr><td colspan="9"><div class="empty">Memuat riwayat…</div></td></tr>';
+    try{
+      if(ACCESS?.is_master&&!s){INCIDENTS=[];renderHistory();return;}
+      INCIDENTS=await rpc('breakage_incident_list',{p_period:PERIOD,p_rdc:s})||[];
+      renderHistory();
+    }catch(e){
+      const msg=cleanErr(e?.message||String(e));
+      const network=/failed to fetch|networkerror|load failed/i.test(msg);
+      $('historyBody').innerHTML=`<tr><td colspan="9"><div class="empty">${network?'Koneksi ke database terputus sementara.':'Gagal memuat riwayat.'}<br><span class="smallnote">${esc(msg)}</span><br><button class="secondary" style="margin-top:10px" onclick="loadHistory()">↻ Coba Lagi</button></div></td></tr>`;
+    }
+  };
+
+  $('refreshBtn').onclick=()=>loadHistory();
+  $('period').onchange=async e=>{PERIOD=e.target.value;$('periodLabel').textContent=monthName(PERIOD);await loadHistory()};
+  $('scope').onchange=async e=>{SCOPE=e.target.value;if(ACCESS?.is_master)$('rdcCard').textContent=SCOPE;await loadHistory()};
+})();
+</script>
 </body>
 </html>
