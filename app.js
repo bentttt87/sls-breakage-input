@@ -17,8 +17,65 @@ function initPeriods(){PERIOD=PERIOD||currentPeriod();let d=new Date(),a=[];for(
 function effectiveScope(){return ACCESS?.is_master?SCOPE:ACCESS?.rdc_name}
 function showApp(){$('login').style.display='none';$('app').style.display='block';let br=String(ACCESS.breakage_role||ACCESS.role||'').toUpperCase();$('who').textContent=`${br} · ${ACCESS.is_master?'Master / Nasional':ACCESS.rdc_name}`;$('rdcCard').textContent=ACCESS.is_master?(SCOPE||'Pilih RDC'):ACCESS.rdc_name;if(ACCESS.is_master)$('masterScope').classList.add('show');else $('masterScope').classList.remove('show');if(ACCESS.can_input){$('newBtn').classList.remove('hidden');$('navInput').classList.remove('hidden');$('roleMsg').classList.remove('hidden');$('roleMsg').innerHTML='<b>ADMIN RDC:</b> input incident sebagai Draft. Draft otomatis masuk antrean review SPV.'}else{$('newBtn').classList.add('hidden');$('navInput').classList.add('hidden');$('roleMsg').classList.remove('hidden');if(ACCESS.can_submit_approve)$('roleMsg').innerHTML='<b>SPV RDC:</b> review Draft dari Admin, lalu Submit/Approve atau Return ke Admin.';else if(ACCESS.is_master)$('roleMsg').innerHTML='<b>MASTER:</b> review/adjustment/final dilakukan di Breakage Monitoring. App ini untuk melihat riwayat input.';else $('roleMsg').innerHTML='<b>READ ONLY:</b> akun ini tidak memiliki hak input atau approval incident.'}}
 async function loadHistory(){try{let s=effectiveScope();if(ACCESS.is_master&&!s){INCIDENTS=[];renderHistory();return}INCIDENTS=await rpc('breakage_incident_list',{p_period:PERIOD,p_rdc:s})||[];renderHistory()}catch(e){$('historyBody').innerHTML=`<tr><td colspan="9"><div class="empty">Gagal memuat: ${esc(cleanErr(e.message))}</div></td></tr>`}}
-function renderHistory(){$('countCard').textContent=fmt(INCIDENTS.length);$('qtyCard').textContent=fmt(INCIDENTS.reduce((a,b)=>a+Number(b.qty_box||0),0));$('rdcCard').textContent=ACCESS.is_master?(SCOPE||'Pilih RDC'):ACCESS.rdc_name;$('historyBody').innerHTML=INCIDENTS.length?INCIDENTS.slice(0,50).map(r=>{let st=String(r.status||'').toUpperCase(),cls=['FINAL','APPROVED_SPV'].includes(st)?'good':st==='RETURNED_ADMIN'?'bad':'watch',act='—';if(ACCESS.can_submit_approve&&['DRAFT','WAITING_SPV'].includes(st))act=`<button class="mini approve" onclick="spvAction(${r.incident_id},'APPROVE')">✓ Submit/Approve</button><button class="mini return" onclick="spvAction(${r.incident_id},'RETURN')">↩ Return</button>`;else if(ACCESS.can_input&&['DRAFT','RETURNED_ADMIN'].includes(st))act=`<button class="mini" onclick="editIncident(${r.incident_id})">✎ Edit Draft</button>`;return `<tr><td>${esc(r.incident_no)}</td><td>${esc(r.occurrence_date)}</td><td>${esc(r.incident_type)}</td><td>${esc(r.item_code)}</td><td>${fmt(r.qty_box)} ${esc(r.uom||'BOX')}</td><td>${esc(r.no_ba)}</td><td>${esc(r.reported_by)}</td><td><span class="badge ${cls}">${esc(r.status)}</span>${r.spv_note?`<div class="smallnote">${esc(r.spv_note)}</div>`:''}</td><td>${act}</td></tr>`}).join(''):`<tr><td colspan="9"><div class="empty">Belum ada incident untuk ${esc(monthName(PERIOD))}.</div></td></tr>`}
-async function spvAction(id,decision){let note='';if(decision==='RETURN'){note=prompt('Catatan Return ke Admin (wajib):','')||'';if(!note.trim())return}else if(!confirm('Submit dan Approve incident ini ke Master?'))return;try{await rpc('breakage_incident_spv_decide_v45',{p_incident_id:id,p_decision:decision,p_note:note});await loadHistory()}catch(e){alert('Gagal: '+cleanErr(e.message))}}window.spvAction=spvAction;
+function renderHistory(){$('countCard').textContent=fmt(INCIDENTS.length);$('qtyCard').textContent=fmt(INCIDENTS.reduce((a,b)=>a+Number(b.qty_box||0),0));$('rdcCard').textContent=ACCESS.is_master?(SCOPE||'Pilih RDC'):ACCESS.rdc_name;$('historyBody').innerHTML=INCIDENTS.length?INCIDENTS.slice(0,50).map(r=>{let st=String(r.status||'').toUpperCase(),cls=['FINAL','APPROVED_SPV'].includes(st)?'good':st==='RETURNED_ADMIN'?'bad':'watch',act='—';act=`<button class="mini" onclick="viewIncident(${Number(r.incident_id)})">Detail &amp; Foto</button>`;if(ACCESS.can_input&&['DRAFT','RETURNED_ADMIN'].includes(st))act+=`<button class="mini" onclick="editIncident(${Number(r.incident_id)})">✎ Edit Draft</button>`;return `<tr><td>${esc(r.incident_no)}</td><td>${esc(r.occurrence_date)}</td><td>${esc(r.incident_type)}</td><td>${esc(r.item_code)}</td><td>${fmt(r.qty_box)} ${esc(r.uom||'BOX')}</td><td>${esc(r.no_ba)}</td><td>${esc(r.reported_by)}</td><td><span class="badge ${cls}">${esc(r.status)}</span>${r.spv_note?`<div class="smallnote">${esc(r.spv_note)}</div>`:''}</td><td>${act}</td></tr>`}).join(''):`<tr><td colspan="9"><div class="empty">Belum ada incident untuk ${esc(monthName(PERIOD))}.</div></td></tr>`}
+// Review uses an in-app dialog: no blocking confirm/prompt dialogs.
+let REVIEW_ID=null, REVIEW_BUSY=false, REVIEW_PHOTOS_READY=false, REVIEW_SEQ=0;
+let REVIEW_URLS=[];
+const reviewRoot=document.createElement('div');
+reviewRoot.id='reviewModal'; reviewRoot.className='overlay';
+reviewRoot.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+<div class="modal-head"><h2 id="reviewTitle">Review Incident</h2><button class="close" id="closeReview" aria-label="Tutup review">✕</button></div>
+<div class="modal-body"><div id="reviewDetails" class="form-grid"></div>
+<h3>Evidence foto</h3><div id="reviewPhotos" class="review-photos"></div>
+<div id="reviewControls" class="hidden"><div class="field" style="margin-top:14px"><label for="reviewNote">Catatan SPV (wajib untuk Return)</label><textarea id="reviewNote" maxlength="1000" placeholder="Tuliskan hasil pemeriksaan atau alasan pengembalian"></textarea></div>
+<label class="review-check"><input type="checkbox" id="reviewChecked"> Saya sudah memeriksa detail dan seluruh foto incident.</label></div>
+<div id="reviewMsg" role="status" aria-live="polite"></div></div>
+<div class="modal-foot" id="reviewActions"><button class="secondary" id="returnReview">Kembalikan ke Admin</button><button class="primary" id="approveReview">Approve &amp; Submit ke Master</button></div></div>`;
+document.body.appendChild(reviewRoot);
+function closeReview(){if(REVIEW_BUSY)return;REVIEW_SEQ++;reviewRoot.classList.remove('show');REVIEW_URLS.forEach(URL.revokeObjectURL);REVIEW_URLS=[];REVIEW_ID=null;}
+$('closeReview').onclick=closeReview;
+function syncReviewButtons(){const can=!!ACCESS?.can_submit_approve&&!REVIEW_BUSY;$('returnReview').disabled=!can;$('approveReview').disabled=!can||!REVIEW_PHOTOS_READY||!$('reviewChecked').checked;$('closeReview').disabled=REVIEW_BUSY;}
+$('reviewChecked').onchange=syncReviewButtons;
+async function evidenceBlob(path){
+  if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').includes('..'))throw new Error('Path evidence tidak valid');
+  const r=await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/breakage-evidence/${path.split('/').map(encodeURIComponent).join('/')}`,{headers:{apikey:PUBLIC_ANON,Authorization:`Bearer ${auth()}`},signal:AbortSignal.timeout(20000)});
+  if(!r.ok)throw new Error('Foto tidak dapat dibuka: '+cleanErr(await r.text()));
+  const blob=await r.blob();if(!['image/jpeg','image/png'].includes(blob.type))throw new Error('Format evidence bukan JPEG/PNG');return blob;
+}
+async function viewIncident(id){
+  if(REVIEW_BUSY)return;closeReview();const r=INCIDENTS.find(x=>Number(x.incident_id)===Number(id));if(!r)return;
+  REVIEW_ID=Number(id);const seq=++REVIEW_SEQ;REVIEW_PHOTOS_READY=false;
+  $('reviewTitle').textContent='Review '+r.incident_no;$('reviewMsg').textContent='';$('reviewNote').value='';$('reviewChecked').checked=false;
+  const fields=[['RDC',r.rdc],['Status',r.status],['Tanggal',r.occurrence_date],['No BA',r.no_ba],['Jenis',r.incident_type],['Kode Item',r.item_code],['Qty',fmt(r.qty_box)+' BOX'],['Reported By',r.reported_by],['Input By',r.created_by],['No SJ',r.no_sj],['Factory',r.factory],['Customer',r.customer],['Transporter',r.transporter],['Driver',r.driver_name],['No Polisi',r.vehicle_no],['Kejadian Gudang',r.warehouse_event],['Nama terkait',r.related_person],['Penyebab',r.cause],['Keterangan',r.cause_detail],['Catatan SPV',r.spv_note],['Catatan Master',r.master_note]];
+  $('reviewDetails').innerHTML=fields.filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>`<div class="field"><label>${esc(k)}</label><div style="overflow-wrap:anywhere;white-space:pre-wrap">${esc(v)}</div></div>`).join('');
+  const actionable=ACCESS?.can_submit_approve&&['DRAFT','WAITING_SPV'].includes(String(r.status).toUpperCase());
+  $('reviewControls').classList.toggle('hidden',!actionable);$('reviewActions').classList.toggle('hidden',!actionable);
+  $('reviewPhotos').textContent='Memuat evidence…';reviewRoot.classList.add('show');syncReviewButtons();$('closeReview').focus();
+  const paths=Array.isArray(r.photo_paths)?r.photo_paths:[];
+  if(!paths.length){$('reviewPhotos').textContent='Evidence belum tersedia. Kembalikan ke Admin untuk dilengkapi.';return;}
+  try{
+    $('reviewPhotos').textContent='';
+    for(let i=0;i<paths.length;i++){
+      const blob=await evidenceBlob(paths[i]);if(seq!==REVIEW_SEQ)return;
+      const url=URL.createObjectURL(blob);REVIEW_URLS.push(url);
+      const img=document.createElement('img');img.alt=`Evidence ${i+1} — ${r.incident_no}`;img.src=url;
+      const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener';link.setAttribute('aria-label',`Buka foto ${i+1} ukuran penuh`);link.append(img);$('reviewPhotos').append(link);
+    }
+    if(seq!==REVIEW_SEQ)return;REVIEW_PHOTOS_READY=true;syncReviewButtons();
+  }catch(e){if(seq!==REVIEW_SEQ)return;$('reviewMsg').textContent=cleanErr(e.message)+' — approval ditahan sampai seluruh foto dapat diperiksa.';}
+}
+window.viewIncident=viewIncident;
+async function submitSpvReview(decision){
+  if(REVIEW_BUSY||!ACCESS?.can_submit_approve||!REVIEW_ID)return;
+  const note=$('reviewNote').value.trim();
+  if(decision==='RETURN'&&!note){$('reviewMsg').textContent='Alasan pengembalian wajib diisi.';$('reviewNote').focus();return;}
+  if(decision==='APPROVE'&&(!REVIEW_PHOTOS_READY||!$('reviewChecked').checked)){ $('reviewMsg').textContent='Periksa seluruh foto dan konfirmasi pemeriksaan terlebih dahulu.';return;}
+  REVIEW_BUSY=true;syncReviewButtons();$('reviewMsg').textContent='Memproses keputusan SPV…';
+  try{await rpc('breakage_incident_spv_decide_v45',{p_incident_id:REVIEW_ID,p_decision:decision,p_note:note});REVIEW_BUSY=false;closeReview();await loadHistory();}
+  catch(e){$('reviewMsg').textContent='Keputusan belum terkonfirmasi: '+cleanErr(e.message)+'. Tutup review dan refresh riwayat sebelum mencoba lagi.';}
+  finally{REVIEW_BUSY=false;syncReviewButtons();}
+}
+$('returnReview').onclick=()=>submitSpvReview('RETURN');$('approveReview').onclick=()=>submitSpvReview('APPROVE');
 async function login(){let u=$('username').value.trim(),pw=$('pw').value;$('loginMsg').textContent='';try{await signIn(u,pw);PERIOD=currentPeriod();SCOPE=ACCESS.is_master?'Jakarta':ACCESS.rdc_name;initPeriods();showApp();await loadHistory()}catch(e){$('loginMsg').textContent=cleanErr(e.message)}}
 async function restoreSession(){let raw=sessionStorage.getItem('sls_breakage_input_session');$('username').value=sessionStorage.getItem('sls_breakage_input_username')||'';if(!raw)return;try{SESSION=JSON.parse(raw);ACCESS=await rpc('breakage_my_access_v44',{});PERIOD=currentPeriod();SCOPE=ACCESS.is_master?'Jakarta':ACCESS.rdc_name;initPeriods();showApp();await loadHistory()}catch(e){sessionStorage.removeItem('sls_breakage_input_session')}}
 async function logout(){try{if(SESSION?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:{apikey:PUBLIC_ANON,Authorization:`Bearer ${SESSION.access_token}`}})}catch(_e){}sessionStorage.removeItem('sls_breakage_input_session');sessionStorage.removeItem('sls_breakage_input_username');location.reload()}
@@ -40,3 +97,4 @@ async function uploadEvidence(files,rdc){let batch='draft_'+crypto.randomUUID(),
 function resetForm(){['fBa','fItem','fQty','fReported','fCauseDetail'].forEach(id=>$(id).value='');PHOTOS=[];EXISTING_PHOTO_PATHS=[];EDIT_ID=null;TYPE='delivery';CAUSE='Perjalanan';renderConditional(TYPE);renderPhotos();document.querySelectorAll('#causeTabs button').forEach(b=>b.classList.toggle('active',b.dataset.cause===CAUSE));$('fDate').value=new Date().toISOString().slice(0,10)}
 $('submitIncident').onclick=async()=>{let miss=validateIncident(),msg=$('inputMsg');msg.classList.remove('hidden');if(miss.length){msg.style.color='#c42d26';msg.textContent='Mohon lengkapi: '+miss.join(', ');return}let b=$('submitIncident');b.disabled=true;msg.style.color='#6f7b91';msg.textContent=EDIT_ID?'Memperbarui Draft…':'Menyimpan Draft ke sistem…';try{let d=formData(),rdc=effectiveScope(),paths=PHOTOS.length?await uploadEvidence(PHOTOS,rdc):EXISTING_PHOTO_PATHS;let payload={incident_type:TYPE,occurrence_date:d.date,item_code:d.item,qty_box:Number(d.qty),uom:'BOX',rdc_name:rdc,no_ba:d.ba.toUpperCase(),reported_by:d.reported,no_sj:d.sj,factory:d.factory,customer:d.customer,transporter:d.transporter,driver_name:d.driver,vehicle_no:d.police.toUpperCase(),cause:CAUSE,cause_detail:d.detail,warehouse_event:d.wh,related_person:d.related,photo_paths:paths};let res=EDIT_ID?await rpc('breakage_incident_update_draft_v45',{p_incident_id:EDIT_ID,p_payload:payload}):await rpc('breakage_incident_create_v45',{p_payload:payload});msg.style.color='#079455';msg.textContent=EDIT_ID?'Draft diperbarui. Menunggu review SPV.':`Draft ${res.incident_no} tersimpan. Menunggu Submit/Approve SPV.`;localStorage.removeItem(draftKey());resetForm();setTimeout(async()=>{$('incidentModal').classList.remove('show');PERIOD=d.date.slice(0,7);initPeriods();await loadHistory();document.querySelector('.panel').scrollIntoView({behavior:'smooth'})},750)}catch(e){msg.style.color='#c42d26';msg.textContent='Gagal: '+cleanErr(e.message)}finally{b.disabled=false}};
 restoreSession();
+
