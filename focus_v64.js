@@ -7,13 +7,14 @@
   function applyLabels(){
     const tabs=document.getElementById('typeTabs');
     if(tabs){
+      tabs.style.gridTemplateColumns='repeat(2,1fr)';
       const rec=tabs.querySelector('[data-type="receiving"]');if(rec)rec.remove();
       const del=tabs.querySelector('[data-type="delivery"]');if(del)del.textContent='Pecah Kiriman';
       const wh=tabs.querySelector('[data-type="warehouse"]');if(wh)wh.textContent='Pecah Penyimpanan';
       const hint=tabs.parentElement?.querySelector('.hint');if(hint)hint.innerHTML='<b>Fokus input:</b> Pecah Kiriman dan Pecah Penyimpanan. Pecah penerimaan langsung diretur ke pabrik dan direkap pabrik sebagai pecah pengiriman. Force majeure diselesaikan melalui BA ke management dan stock adjustment sesuai approval.';
     }
     const hero=document.querySelector('.hero p');if(hero)hero.textContent='Admin RDC mencatat Pecah Kiriman atau Pecah Penyimpanan sebagai Draft. SPV RDC review/approve. Master melakukan review dan monitoring. Receiving diretur ke pabrik; force majeure melalui BA management.';
-    const cType=document.getElementById('cType');if(cType){[...cType.options].forEach(o=>{if(o.value==='receiving')o.remove()});if(cType.value==='receiving')cType.value='delivery'}
+    const cType=document.getElementById('cType');if(cType){[...cType.options].forEach(o=>{if(o.value==='receiving')o.remove()});if(cType.value==='receiving')cType.value='delivery';const wh=[...cType.options].find(o=>o.value==='warehouse');if(wh)wh.textContent='Penyimpanan'}
   }
 
   const baseRenderConditional=renderConditional;
@@ -36,7 +37,12 @@
   }
 
   const baseRenderHistory=renderHistory;
-  renderHistory=function(){INCIDENTS=(INCIDENTS||[]).filter(r=>activeType(r.incident_type));const out=baseRenderHistory();document.querySelectorAll('#historyBody tr').forEach(tr=>{tr.innerHTML=tr.innerHTML.replace(/delivery/gi,'Pecah Kiriman').replace(/warehouse/gi,'Pecah Penyimpanan')});setBuild();return out};
+  renderHistory=function(){
+    INCIDENTS=(INCIDENTS||[]).filter(r=>activeType(r.incident_type));
+    const out=baseRenderHistory();
+    document.querySelectorAll('#historyBody tr').forEach(tr=>{const td=tr.children?.[2];if(!td)return;const raw=String(td.textContent||'').trim().toLowerCase();if(raw==='delivery')td.textContent='Pecah Kiriman';else if(raw==='warehouse')td.textContent='Pecah Penyimpanan'});
+    setBuild();return out;
+  };
   window.renderHistory=renderHistory;
 
   if(typeof loadHistory==='function'){
@@ -47,7 +53,7 @@
 
   if(typeof viewIncident==='function'){
     const baseView=viewIncident;
-    viewIncident=async function(id){const r=(INCIDENTS||[]).find(x=>Number(x.incident_id)===Number(id));if(r&&!activeType(r.incident_type))return;const out=await baseView(id);applyLabels();return out};
+    viewIncident=async function(id){const r=(INCIDENTS||[]).find(x=>Number(x.incident_id)===Number(id));if(r&&!activeType(r.incident_type))return;const out=await baseView(id);applyLabels();document.querySelectorAll('#reviewDetails .field').forEach(f=>{const l=f.querySelector('label');if(l?.textContent==='Jenis'){const d=f.querySelector('div');if(d){if(d.textContent==='delivery')d.textContent='Pecah Kiriman';if(d.textContent==='warehouse')d.textContent='Pecah Penyimpanan'}}});return out};
     window.viewIncident=viewIncident;
   }
 
