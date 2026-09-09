@@ -1,0 +1,32 @@
+name: Patch Breakage Input v74
+on:
+  push:
+    paths:
+      - '.github/workflows/patch_index_v74.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index directly
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('>v71</span>','>v74</span>')
+          inject='<script src="/logistics_v72.js?v=20260909c"></script><script src="/breakage_v74.js?v=20260909"></script>'
+          if '/breakage_v74.js' not in s:
+              s=s.replace('</body>',inject+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit patched index
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: serve breakage input v74 directly from index'
+          git push
