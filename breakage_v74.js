@@ -1,7 +1,7 @@
-// SLS Breakage Input v74 — direct production patch.
+// SLS Breakage Input v77 — direct production patch.
 (function(){
   'use strict';
-  const VERSION='v74';
+  const VERSION='v77';
   const get=id=>document.getElementById(id);
   const role=()=>String(ACCESS?.breakage_role||ACCESS?.role||'').toLowerCase();
   const canLogistics=()=>['spv','supervisor','manager','rdc_manager','master'].includes(role())||!!ACCESS?.is_manager||!!ACCESS?.is_master;
@@ -15,7 +15,12 @@
   }
   function ensureLogisticsButton(){
     const actions=document.querySelector('.actions'); if(!actions)return;
-    let b=get('logisticsBtnDirectV74');
+    const main=get('logisticsBtn');
+    const oldDirect=get('logisticsBtnDirectV74');
+    const oldV73=get('logisticsMenuV73');
+    if(main){ if(oldDirect) oldDirect.remove(); if(oldV73) oldV73.remove(); return; }
+    if(oldV73){ if(oldDirect) oldDirect.remove(); oldV73.classList.toggle('hidden',!canLogistics()); return; }
+    let b=oldDirect;
     if(!b){b=document.createElement('button');b.id='logisticsBtnDirectV74';b.className='secondary';b.textContent='🚚 Database Ekspedisi';b.onclick=()=>location.href='/logistics.html';actions.appendChild(b);}
     b.classList.toggle('hidden',!canLogistics());
   }
@@ -35,8 +40,8 @@
   const baseReset=resetForm;
   resetForm=function(){baseReset();ensureSeries();if(get('fSeries'))get('fSeries').value='';};
   const baseShow=showApp;
-  showApp=function(...args){const r=baseShow(...args);ensureBuild();ensureLogisticsButton();return r;};
+  showApp=function(...args){const r=baseShow(...args);ensureBuild();ensureLogisticsButton();setTimeout(ensureLogisticsButton,50);return r;};
   document.addEventListener('input',e=>{if(e.target?.id==='fSeries'){e.target.value=e.target.value.toUpperCase();saveDraft();}});
   ensureBuild();ensureSeries();ensureLogisticsButton();
-  setTimeout(()=>{ensureBuild();ensureSeries();ensureLogisticsButton();},300);
+  [100,300,800,1500].forEach(ms=>setTimeout(()=>{ensureBuild();ensureSeries();ensureLogisticsButton();},ms));
 })();
