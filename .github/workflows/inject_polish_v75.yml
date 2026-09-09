@@ -1,0 +1,35 @@
+name: Inject Breakage Input v75 polish
+on:
+  push:
+    paths:
+      - 'polish_v75.js'
+      - '.github/workflows/inject_polish_v75.yml'
+permissions:
+  contents: write
+jobs:
+  inject:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Inject polish script into index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="/polish_v75.js?v=20260909"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+          s=s.replace('>v74<','>v75<')
+          p.write_text(s)
+          PY
+      - name: Commit patched index
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'fix: polish Database Ekspedisi buttons v75'
+          git push
