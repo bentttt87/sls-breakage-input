@@ -1,0 +1,32 @@
+name: Promote Breakage Input v78
+on:
+  push:
+    paths:
+      - 'breakage_v78.js'
+      - '.github/workflows/promote_v78.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject v78 script and badge
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          if '/breakage_v78.js' not in s:
+              s=s.replace('</body>','<script src="/breakage_v78.js?v=20260909"></script>\n</body>')
+          import re
+          s=re.sub(r'(<span id="buildBadge"[^>]*>)(v\d+)(</span>)',r'\1v78\3',s)
+          p.write_text(s)
+          PY
+      - name: Commit production index
+        run: |
+          git config user.name "bentttt87"
+          git config user.email "bentttt87@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "feat: activate combined driver-no-pol and factory dropdown v78"
+          git push
