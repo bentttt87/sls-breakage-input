@@ -1,0 +1,29 @@
+name: Promote Breakage Input v76
+on:
+  push:
+    paths:
+      - '.github/workflows/promote_v76.yml'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch production index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('>v75</span>','>v76</span>')
+          s=s.replace('/polish_v75.js?v=20260909','/polish_v75.js?v=20260909v76')
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'bentttt87'
+          git config user.email 'bentttt87@gmail.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'fix: stable Breakage Input v76'
+          git push
