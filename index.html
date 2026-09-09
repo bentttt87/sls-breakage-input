@@ -21,7 +21,7 @@
 <div class="login" id="login"><div class="login-box"><div class="brandrow"><div id="loginLogo"></div><div><h1>SLS Breakage Input</h1><div class="sub">Input cepat di lapangan · review SPV · evidence foto</div></div></div><label>User ID</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="User ID"><label>Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Password"><button id="loginBtn" class="primary full" style="margin-top:15px">Masuk ke Breakage Input</button><div id="loginMsg" class="login-msg"></div><div class="sub">RDC dan hak akses ditentukan otomatis berdasarkan akun.</div></div></div>
 
 <div class="app" id="app">
-<header class="topbar"><div><div class="top-title">SLS BREAKAGE INPUT</div><div class="top-meta" id="who">—</div></div><span id="buildBadge" class="small" style="padding:4px 7px;border:1px solid rgba(255,255,255,.25);border-radius:999px">v78</span><div class="grow"></div><button class="top-btn" id="monitoringBtn">Monitoring</button><button class="top-btn" id="logoutBtn">Keluar</button></header>
+<header class="topbar"><div><div class="top-title">SLS BREAKAGE INPUT</div><div class="top-meta" id="who">—</div></div><span id="buildBadge" class="small" style="padding:4px 7px;border:1px solid rgba(255,255,255,.25);border-radius:999px">v80</span><div class="grow"></div><button class="top-btn" id="monitoringBtn">Monitoring</button><button class="top-btn" id="logoutBtn">Keluar</button></header>
 <div class="wrap">
   <div class="hero"><div><h2>Catat breakage dengan cepat</h2><p>Admin RDC membuat Draft. SPV memeriksa detail dan foto, kemudian Approve atau Return. Master melakukan review final di Breakage Monitoring.</p></div><div class="role-chip"><span>Login sebagai</span><b id="roleChip">—</b><span id="rdcChip">—</span></div></div>
   <div class="master-scope" id="masterScope"><b>Filter RDC riwayat:</b><select id="scope"><option>Jakarta</option><option>Semarang</option><option>Surabaya</option><option>Denpasar</option><option>Palembang</option></select></div>
@@ -94,5 +94,6 @@ async function restore(){const raw=sessionStorage.getItem('sls_breakage_input_se
 </script>
 <script src="/logistics_v72.js?v=20260909c"></script><script src="/breakage_v74.js?v=20260909"></script><script src="/polish_v75.js?v=20260909v76"></script>
 <script src="/breakage_v78.js?v=20260909"></script>
+<script src="/remove_reporter_v80.js?v=20260909"></script>
 </body>
 </html>
