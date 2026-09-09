@@ -1,0 +1,32 @@
+name: Promote Breakage Input v80
+on:
+  push:
+    paths:
+      - '.github/workflows/promote_v80.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject v80 reporter patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="/remove_reporter_v80.js?v=20260909"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>')
+          s=s.replace('>v78</span>','>v80</span>').replace('>v79</span>','>v80</span>')
+          p.write_text(s)
+          PY
+      - name: Commit production index
+        run: |
+          git config user.name 'bentttt87'
+          git config user.email 'bentttt87@gmail.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'feat: hide manual reporter input v80'
+          git push
