@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SLS Breakage Input — Development Snapshot</title>
+<!--
+  SLS BREAKAGE INPUT — DEVELOPMENT SNAPSHOT
+  Snapshot: 10 Sep 2026
+  Pinned source commit: e1151dab0feee64395c520add248e9d538f42b4d
+
+  Tujuan file ini:
+  - Menjadi entry point/index.html yang aman untuk disimpan dan dikembangkan lagi di masa depan.
+  - Tidak mengubah entry point aplikasi LIVE.
+  - Source dikunci ke commit di atas agar perubahan future di branch main tidak mengubah snapshot ini.
+
+  Komponen snapshot:
+  - index.html       : core SLS Breakage Input v80
+  - logistics_v72.js: Database Ekspedisi + dropdown Vendor/Driver/No Polisi + governance role
+
+  Untuk development penuh/offline, copy kedua file tersebut dari commit yang sama ke satu folder,
+  lalu ganti SNAPSHOT_BASE menjadi path lokal yang sesuai.
+-->
+<style>
+html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f5f8fc;color:#27466b}
+#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+#boot>div{max-width:560px;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(10,45,90,.08)}
+small{display:block;margin-top:8px;color:#6d7d94;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot</b><small>Snapshot source 10 Sep 2026 · pinned commit e1151dab</small></div></div>
+<script>
+(async function(){
+  const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/e1151dab0feee64395c520add248e9d538f42b4d/';
+  try{
+    let html=await fetch(SNAPSHOT_BASE+'index.html',{cache:'no-store'}).then(r=>{
+      if(!r.ok)throw new Error('index.html HTTP '+r.status);
+      return r.text();
+    });
+
+    // Tambahkan patch Database Ekspedisi dari commit snapshot yang sama.
+    html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'logistics_v72.js?v=snapshot-20260910"><\/script></body>');
+
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(e){
+    document.getElementById('boot').innerHTML='<div style="color:#b42318"><b>Snapshot gagal dimuat.</b><small>'+String(e.message||e)+'</small></div>';
+  }
+})();
+</script>
+</body>
+</html>
