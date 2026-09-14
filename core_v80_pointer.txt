@@ -1,1 +1,0 @@
-Temporary marker for v88 canonicalization. The actual core_v80.html is created from the existing index blob in the next commit.
