@@ -11,11 +11,12 @@
     return `<div class="field" id="factoryField92_${id}"><label>Pabrik Asal *</label><select id="${id}"><option value="">Pilih Pabrik Asal</option><option value="SRKI" ${v==='SRKI'?'selected':''}>SRKI</option><option value="RCI" ${v==='RCI'?'selected':''}>RCI</option></select><div class="smallnote">Wajib pilih SRKI atau RCI.</div></div>`;
   }
   function draftFactory(){try{return up(JSON.parse(localStorage.getItem(draftKey())||'{}')?.factory||'')}catch(_){return ''}}
+  function editFactory(){try{return up((Array.isArray(INCIDENTS)?INCIDENTS:[]).find(x=>Number(x.incident_id)===Number(EDIT_ID))?.factory||'')}catch(_){return ''}}
   function ensureInputFactory(seed=''){
     if(!['delivery','warehouse'].includes(currentType()))return;
-    let el=$('fFactory'); const current=up(el?.value||seed||draftFactory());
+    let el=$('fFactory'); const current=up(el?.value||seed||draftFactory()||editFactory());
     if(!el){
-      const ref=currentType()==='delivery'?(fieldOf('fSj')||fieldOf('fSeries')):fieldOf('fSeries');
+      const ref=currentType()==='delivery'?(fieldOf('fSj')||fieldOf('fSeries')):(fieldOf('fSeries')||fieldOf('fItem'));
       if(ref){ref.insertAdjacentHTML('afterend',factoryHtml('fFactory',current));el=$('fFactory')}
     }
     if(el&&el.tagName!=='SELECT'){
@@ -37,6 +38,26 @@
     }
     if(el&&['SRKI','RCI'].includes(current))el.value=current;
   }
+
+  // Canonical payload: Pabrik Asal harus ikut terkirim untuk Kiriman maupun Gudang.
+  try{
+    const baseForm=formData;
+    formData=function(){const r=baseForm.apply(this,arguments)||{};if(['delivery','warehouse'].includes(currentType()))r.factory=up($('fFactory')?.value||'');return r};
+    window.formData=formData;
+  }catch(_){ }
+
+  // Route writes through v92 backend so Gudang menyimpan factory, bukan kembali NULL.
+  try{
+    const baseRpc=rpc;
+    rpc=async function(fn,params={}){
+      let mapped=fn,p=params||{};
+      if(fn==='breakage_incident_create_v45')mapped='breakage_incident_create_v92';
+      else if(fn==='breakage_incident_update_draft_v45')mapped='breakage_incident_update_draft_v92';
+      else if(fn==='breakage_incident_spv_revise_v83')mapped='breakage_incident_spv_revise_v92';
+      return baseRpc(mapped,p);
+    };
+    window.rpc=rpc;
+  }catch(_){ }
 
   // Canonical rule: Pabrik Asal wajib SRKI/RCI untuk Kiriman dan Gudang.
   try{
