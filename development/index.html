@@ -2,18 +2,18 @@
 <html lang="id">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SLS Breakage Input — Development Snapshot v88</title>
-<!-- Snapshot 14 Sep 2026. Canonical v88: direct /index.html, root /, dan legacy shell sekarang memakai entry yang sama; core lama dipisah menjadi core_v80.html. -->
+<title>SLS Breakage Input — Development Snapshot v89</title>
+<!-- Snapshot 14 Sep 2026. v89: Admin RDC dan Operator Warehouse sama-sama dapat upload evidence foto ke bucket breakage-evidence pada RDC masing-masing. -->
 <style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f5f8fc;color:#27466b}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}#boot>div{max-width:720px;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(10,45,90,.08)}small{display:block;margin-top:8px;color:#6d7d94;line-height:1.5}</style>
 </head>
-<body><div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v88</b><small>Snapshot canonical entry · seluruh URL menggunakan stack form yang sama sehingga Admin dan Operator tidak lagi menerima versi lama yang berbeda.</small></div></div>
+<body><div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v89</b><small>Admin RDC + Operator Warehouse dapat input incident dan upload foto evidence pada scope RDC masing-masing.</small></div></div>
 <script>
 (async function(){
- const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/729f305e5705c64766470222bf5084390b970070/';
+ const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/1baaa557434d6c35e51d8c22edea5bb2363af35e/';
  try{
   let html=await fetch(SNAPSHOT_BASE+'core_v80.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('core_v80.html HTTP '+r.status);return r.text()});
   ['logistics_v72.js','breakage_v74.js','polish_v75.js','breakage_v78.js','remove_reporter_v80.js'].forEach(f=>{html=html.replaceAll('src="/'+f,'src="'+SNAPSHOT_BASE+f)});
-  html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-v88"><\/script><script src="'+SNAPSHOT_BASE+'spv_review_v83.js?v=snapshot-v88"><\/script><script src="'+SNAPSHOT_BASE+'ba_picker_v85.js?v=snapshot-v88"><\/script><script src="'+SNAPSHOT_BASE+'operator_access_v85.js?v=snapshot-v88"><\/script><script src="'+SNAPSHOT_BASE+'delivery_form_v86.js?v=snapshot-v88"><\/script><script src="'+SNAPSHOT_BASE+'form_integrity_v87.js?v=snapshot-v88"><\/script><script>setTimeout(function(){var b=document.getElementById(\'buildBadge\');if(b)b.textContent=\'v88\';},500);<\/script></body>');
+  html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-v89"><\/script><script src="'+SNAPSHOT_BASE+'spv_review_v83.js?v=snapshot-v89"><\/script><script src="'+SNAPSHOT_BASE+'ba_picker_v85.js?v=snapshot-v89"><\/script><script src="'+SNAPSHOT_BASE+'operator_access_v85.js?v=snapshot-v89"><\/script><script src="'+SNAPSHOT_BASE+'delivery_form_v86.js?v=snapshot-v89"><\/script><script src="'+SNAPSHOT_BASE+'form_integrity_v87.js?v=snapshot-v89"><\/script><script>setTimeout(function(){var b=document.getElementById(\'buildBadge\');if(b)b.textContent=\'v89\';},500);<\/script></body>');
   document.open();document.write(html);document.close();
  }catch(e){document.getElementById('boot').innerHTML='<div style="color:#b42318"><b>Snapshot gagal dimuat.</b><small>'+String(e.message||e)+'</small></div>'}
 })();
