@@ -2,18 +2,18 @@
 <html lang="id">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SLS Breakage Input — Development Snapshot v84</title>
-<!-- Snapshot 14 Sep 2026. Pinned source commit: 362e1338e67614363b5bf7a5ebb92172ec8934b7. Cakupan: core Input, Database Ekspedisi, BA metadata, direct Print BA operator, Tambah Item BA/SJ sama, SPV revision dropdown terkontrol, centralized searchable Print BA picker, output A4 multi-halaman. -->
-<style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f5f8fc;color:#27466b}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}#boot>div{max-width:640px;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(10,45,90,.08)}small{display:block;margin-top:8px;color:#6d7d94;line-height:1.5}</style>
+<title>SLS Breakage Input — Development Snapshot v85</title>
+<!-- Snapshot 14 Sep 2026. Pinned source commit: adcfa0c3a0db9011db1acebc1bc3d6702c45029c. Cakupan: core Input, Database Ekspedisi, BA metadata, direct Print BA, Tambah Item BA/SJ sama, SPV revision dropdown terkontrol, centralized searchable Print BA picker, serta Admin dan Operator Warehouse dengan kewenangan Breakage Input yang sama. -->
+<style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f5f8fc;color:#27466b}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}#boot>div{max-width:660px;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(10,45,90,.08)}small{display:block;margin-top:8px;color:#6d7d94;line-height:1.5}</style>
 </head>
-<body><div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v84</b><small>Snapshot 14 Sep 2026 · Print BA terpusat dengan filter tanggal, dropdown No BA, dan search</small></div></div>
+<body><div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v85</b><small>Snapshot 14 Sep 2026 · Admin & Operator Warehouse setara untuk input/edit Draft RDC + Print BA</small></div></div>
 <script>
 (async function(){
- const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/362e1338e67614363b5bf7a5ebb92172ec8934b7/';
+ const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/adcfa0c3a0db9011db1acebc1bc3d6702c45029c/';
  try{
   let html=await fetch(SNAPSHOT_BASE+'index.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('index.html HTTP '+r.status);return r.text()});
   ['logistics_v72.js','breakage_v74.js','polish_v75.js','breakage_v78.js','remove_reporter_v80.js'].forEach(f=>{html=html.replaceAll('src="/'+f,'src="'+SNAPSHOT_BASE+f)});
-  html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-v82"><\/script><script src="'+SNAPSHOT_BASE+'spv_review_v83.js?v=snapshot-v83"><\/script><script src="'+SNAPSHOT_BASE+'ba_picker_v84.js?v=snapshot-v84"><\/script></body>');
+  html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-v82"><\/script><script src="'+SNAPSHOT_BASE+'spv_review_v83.js?v=snapshot-v83"><\/script><script src="'+SNAPSHOT_BASE+'ba_picker_v85.js?v=snapshot-v85"><\/script><script src="'+SNAPSHOT_BASE+'operator_access_v85.js?v=snapshot-v85"><\/script></body>');
   document.open();document.write(html);document.close();
  }catch(e){document.getElementById('boot').innerHTML='<div style="color:#b42318"><b>Snapshot gagal dimuat.</b><small>'+String(e.message||e)+'</small></div>'}
 })();
