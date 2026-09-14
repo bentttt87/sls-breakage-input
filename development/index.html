@@ -1,38 +1,20 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SLS Breakage Input — Development Snapshot v81</title>
-<!--
-  SLS BREAKAGE INPUT — DEVELOPMENT SNAPSHOT
-  Snapshot: 14 Sep 2026
-  Pinned source commit: f97dabc6f1f45b7abeeac291b3517a83c5d43164
-
-  Cakupan snapshot:
-  - index.html core Breakage Input
-  - logistics_v72.js Database Ekspedisi
-  - breakage_v74.js / breakage_v78.js / remove_reporter_v80.js
-  - ba_input_v81.js tombol Print BA + Tambah Item SJ Sama
-  - ba_print.html output A4 multi-halaman
-
-  File ini dipertahankan sebagai entry point pengembangan/rollback dan tidak mengubah URL live.
--->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SLS Breakage Input — Development Snapshot v82</title>
+<!-- Snapshot 14 Sep 2026. Pinned source commit: a046a2c4e0c62ed263ec3f21d147501e51345829. Cakupan: core Input, Database Ekspedisi, BA metadata, direct Print BA, Tambah Item ke BA/SJ sama, output A4 multi-halaman. -->
 <style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f5f8fc;color:#27466b}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}#boot>div{max-width:600px;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(10,45,90,.08)}small{display:block;margin-top:8px;color:#6d7d94;line-height:1.5}</style>
 </head>
-<body>
-<div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v81</b><small>Snapshot 14 Sep 2026 · direct Print BA + same-SJ item flow</small></div></div>
+<body><div id="boot"><div><b>Memuat SLS Breakage Input — Development Snapshot v82</b><small>Snapshot 14 Sep 2026 · satu No BA dapat berisi beberapa item pada SJ yang sama</small></div></div>
 <script>
 (async function(){
-  const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/f97dabc6f1f45b7abeeac291b3517a83c5d43164/';
-  try{
-    let html=await fetch(SNAPSHOT_BASE+'index.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('index.html HTTP '+r.status);return r.text()});
-    const deps=['logistics_v72.js','breakage_v74.js','polish_v75.js','breakage_v78.js','remove_reporter_v80.js'];
-    deps.forEach(f=>{html=html.replaceAll('src="/'+f, 'src="'+SNAPSHOT_BASE+f)});
-    html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-20260914"><\/script></body>');
-    document.open();document.write(html);document.close();
-  }catch(e){document.getElementById('boot').innerHTML='<div style="color:#b42318"><b>Snapshot gagal dimuat.</b><small>'+String(e.message||e)+'</small></div>'}
+ const SNAPSHOT_BASE='https://raw.githubusercontent.com/bentttt87/sls-breakage-input/a046a2c4e0c62ed263ec3f21d147501e51345829/';
+ try{
+  let html=await fetch(SNAPSHOT_BASE+'index.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('index.html HTTP '+r.status);return r.text()});
+  ['logistics_v72.js','breakage_v74.js','polish_v75.js','breakage_v78.js','remove_reporter_v80.js'].forEach(f=>{html=html.replaceAll('src="/'+f,'src="'+SNAPSHOT_BASE+f)});
+  html=html.replace('</body>','<script src="'+SNAPSHOT_BASE+'ba_input_v81.js?v=snapshot-v82"><\/script></body>');
+  document.open();document.write(html);document.close();
+ }catch(e){document.getElementById('boot').innerHTML='<div style="color:#b42318"><b>Snapshot gagal dimuat.</b><small>'+String(e.message||e)+'</small></div>'}
 })();
-</script>
-</body>
-</html>
+</script></body></html>
