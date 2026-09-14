@@ -4,10 +4,11 @@
   const $=id=>document.getElementById(id);
   const up=v=>String(v??'').trim().toUpperCase();
   const currentType=()=>{try{return String(TYPE||'').toLowerCase()}catch(_){return ''}};
+  const reviewRow=()=>{try{return (Array.isArray(INCIDENTS)?INCIDENTS:[]).find(x=>Number(x.incident_id)===Number(REVIEW_ID))||{}}catch(_){return {}}};
   function fieldOf(id){return $(id)?.closest('.field')||null}
   function factoryHtml(id='fFactory',value=''){
     const v=up(value);
-    return `<div class="field" id="factoryField92"><label>Pabrik Asal *</label><select id="${id}"><option value="">Pilih Pabrik Asal</option><option value="SRKI" ${v==='SRKI'?'selected':''}>SRKI</option><option value="RCI" ${v==='RCI'?'selected':''}>RCI</option></select><div class="smallnote">Wajib pilih SRKI atau RCI.</div></div>`;
+    return `<div class="field" id="factoryField92_${id}"><label>Pabrik Asal *</label><select id="${id}"><option value="">Pilih Pabrik Asal</option><option value="SRKI" ${v==='SRKI'?'selected':''}>SRKI</option><option value="RCI" ${v==='RCI'?'selected':''}>RCI</option></select><div class="smallnote">Wajib pilih SRKI atau RCI.</div></div>`;
   }
   function draftFactory(){try{return up(JSON.parse(localStorage.getItem(draftKey())||'{}')?.factory||'')}catch(_){return ''}}
   function ensureInputFactory(seed=''){
@@ -29,7 +30,7 @@
   }
   function ensureWarehouseCorrectionFactory(seed=''){
     const type=$('cType')?.value||''; if(type!=='warehouse')return;
-    let el=$('cFactory');const current=up(el?.value||seed||'');
+    let el=$('cFactory');const current=up(el?.value||seed||reviewRow()?.factory||'');
     if(!el){
       const box=$('cTypeFields')?.querySelector('.form-grid');
       if(box){box.insertAdjacentHTML('afterbegin',factoryHtml('cFactory',current));el=$('cFactory')}
@@ -37,7 +38,7 @@
     if(el&&['SRKI','RCI'].includes(current))el.value=current;
   }
 
-  // Canonical warehouse validation. Delivery remains protected by v87.
+  // Canonical rule: Pabrik Asal wajib SRKI/RCI untuk Kiriman dan Gudang.
   try{
     const baseValidate=validateIncident;
     validateIncident=function(){
@@ -61,10 +62,10 @@
     editIncident=async function(id){let row=null;try{row=INCIDENTS.find(x=>Number(x.incident_id)===Number(id))}catch(_){ }const r=await baseEdit.apply(this,arguments);setTimeout(()=>ensureInputFactory(row?.factory||''),80);setTimeout(()=>ensureInputFactory(row?.factory||''),260);return r};window.editIncident=editIncident;
   }catch(_){ }
 
-  // SPV correction: Gudang now also carries factory.
+  // SPV correction: Gudang juga wajib Pabrik Asal.
   try{
     const baseTypeChanged=window.spvV83TypeChanged;
-    if(typeof baseTypeChanged==='function')window.spvV83TypeChanged=function(){const r=baseTypeChanged.apply(this,arguments);setTimeout(()=>ensureWarehouseCorrectionFactory(ACTIVE_ROW?.factory||''),20);return r};
+    if(typeof baseTypeChanged==='function')window.spvV83TypeChanged=function(){const r=baseTypeChanged.apply(this,arguments);setTimeout(()=>ensureWarehouseCorrectionFactory(reviewRow()?.factory||''),20);return r};
   }catch(_){ }
   try{
     const baseSave=saveSpvCorrection;
@@ -79,8 +80,8 @@
   }catch(_){ }
 
   const modal=$('incidentModal');if(modal)new MutationObserver(()=>setTimeout(()=>ensureInputFactory(),0)).observe(modal,{childList:true,subtree:true});
-  const review=$('reviewModal');if(review)new MutationObserver(()=>{if(($('cType')?.value||'')==='warehouse')setTimeout(()=>ensureWarehouseCorrectionFactory(ACTIVE_ROW?.factory||''),0)}).observe(review,{childList:true,subtree:true});
+  const review=$('reviewModal');if(review)new MutationObserver(()=>{if(($('cType')?.value||'')==='warehouse')setTimeout(()=>ensureWarehouseCorrectionFactory(reviewRow()?.factory||''),0)}).observe(review,{childList:true,subtree:true});
   document.addEventListener('click',e=>{if(e.target?.dataset?.type||['newBtn','navInput'].includes(e.target?.id))setTimeout(()=>ensureInputFactory(),30)},true);
-  document.addEventListener('change',e=>{if(e.target?.id==='cType'&&e.target.value==='warehouse')setTimeout(()=>ensureWarehouseCorrectionFactory(ACTIVE_ROW?.factory||''),30)},true);
+  document.addEventListener('change',e=>{if(e.target?.id==='cType'&&e.target.value==='warehouse')setTimeout(()=>ensureWarehouseCorrectionFactory(reviewRow()?.factory||''),30)},true);
   [60,180,500,1200].forEach(ms=>setTimeout(()=>{ensureInputFactory();const b=$('buildBadge');if(b)b.textContent='v92'},ms));
 })();
