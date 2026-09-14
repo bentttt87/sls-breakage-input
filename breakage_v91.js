@@ -23,7 +23,7 @@
     // v90 bulk Excel+photo export is intentionally removed. BA picker now produces one BA+photo document.
     $('exportBreakageBtn')?.remove();$('exportBreakageModal')?.remove();
     const btn=$('baPickerBtn');if(btn)btn.textContent='⬇ Download BA + Foto';
-    const run=$('baPickerPrint');if(run&&!run.disabled)run.textContent='⬇ Buka BA + Foto';
+    const run=$('baPickerPrint');if(run)run.textContent=run.disabled?'⬇ Pilih BA dahulu':'⬇ Buka BA + Foto';
     const title=document.querySelector('#baPickerModal .modal-head h2');if(title)title.textContent='Download Berita Acara + Lampiran Foto';
     const sub=document.querySelector('#baPickerModal .modal-head .small');if(sub)sub.textContent='Pilih BA. Berita Acara dan seluruh foto evidence disatukan dalam satu dokumen PDF.';
     const hint=$('baPickerInfo');if(hint&&hint.style.display!=='none'&&!/satu dokumen/i.test(hint.textContent||''))hint.insertAdjacentHTML('beforeend','<br><span class="smallnote">Output: 1 dokumen BA + seluruh lampiran foto.</span>');
@@ -31,7 +31,8 @@
   }
 
   document.addEventListener('click',e=>{
-    if(e.target?.id==='baPickerBtn'||e.target?.id==='baPickerReload'||e.target?.id==='baPickerSelect')setTimeout(singleFileUi,20);
+    if(['baPickerBtn','baPickerReload','baPickerSelect','baPickerPrint'].includes(e.target?.id))setTimeout(singleFileUi,30);
   },true);
+  document.addEventListener('change',e=>{if(e.target?.id==='baPickerSelect')setTimeout(singleFileUi,20)},true);
   [60,180,500,1200,2500].forEach(ms=>setTimeout(()=>{applyBrand();singleFileUi()},ms));
 })();
