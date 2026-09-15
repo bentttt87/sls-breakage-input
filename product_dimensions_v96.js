@@ -5,7 +5,7 @@
   const up=v=>String(v??'').trim().toUpperCase();
   const fallback=[
     ['GRANDE','100x100'],['GRANDE','120x60'],['GRANDE','80x80'],
-    ['GRANIT','100x100'],['GRANIT','120x60'],['GRANIT','122X20'],['GRANIT','60x15'],['GRANIT','60x30'],['GRANIT','80x80'],['GRANIT','90x15'],['GRANIT','30X30'],['GRANIT','60x60'],['GRANIT','STEPTILE'],
+    ['GRANIT','100x100'],['GRANIT','120x60'],['GRANIT','120x20'],['GRANIT','60x15'],['GRANIT','60x30'],['GRANIT','80x80'],['GRANIT','90x15'],['GRANIT','30X30'],['GRANIT','60x60'],['GRANIT','STEPTILE'],
     ['KERAMIK','40x40'],['KERAMIK','30x60'],['KERAMIK','90x30'],['KERAMIK','60x30'],['KERAMIK','50x50'],['KERAMIK','40x20'],['KERAMIK','Hexa'],['KERAMIK','30x30'],['KERAMIK','50x20'],['KERAMIK','20x20']
   ].map((x,i)=>({product_type:x[0],product_size:x[1],sort_order:i+1}));
   let MASTER=fallback.slice();
