@@ -1,4 +1,4 @@
-// SLS Breakage Input v85 — centralized Print BA picker for Admin/Operator Warehouse/SPV/Manager/Master.
+// SLS Breakage Input — centralized Print BA picker (hardened v95).
 (function(){
   'use strict';
   const el=id=>document.getElementById(id);
@@ -6,8 +6,14 @@
   const up=s=>String(s??'').trim().toUpperCase();
   let BA_LIST=[];
 
+  function roleText(){
+    try{return up(ACCESS?.role||ACCESS?.role_name||el('roleChip')?.textContent||el('who')?.textContent||'');}catch(_){return up(el('roleChip')?.textContent||el('who')?.textContent||'');}
+  }
   function canUse(){
-    try{return !!ACCESS?.can_input || !!ACCESS?.can_submit_approve || !!ACCESS?.is_manager || !!ACCESS?.is_master;}catch(_){return false;}
+    try{
+      if(ACCESS?.can_input||ACCESS?.can_submit_approve||ACCESS?.can_manage_logistics||ACCESS?.is_manager||ACCESS?.is_master)return true;
+    }catch(_){ }
+    return /(ADMIN|STAFF|OPERATOR|SPV|SUPERVISOR|MANAGER|MGR|MASTER)/.test(roleText());
   }
   function scopeRdc(){
     try{return typeof effectiveScope==='function' ? effectiveScope() : (ACCESS?.rdc_name||null);}catch(_){return null;}
@@ -17,12 +23,12 @@
     try{return new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(v+'T00:00:00'));}catch(_){return v;}
   }
   function ensureUi(){
-    if(!canUse())return;
     const actions=document.querySelector('.actions');
-    if(actions && !el('baPickerBtn')){
-      const lg=el('logisticsBtn');
-      if(lg)lg.insertAdjacentHTML('afterend','<button class="secondary" id="baPickerBtn">🖨 Print BA</button>');
-      else actions.insertAdjacentHTML('beforeend','<button class="secondary" id="baPickerBtn">🖨 Print BA</button>');
+    if(!actions||!canUse())return;
+    if(!el('baPickerBtn')){
+      const anchor=el('logisticsBtn')||el('refreshBtn');
+      const html='<button class="secondary" id="baPickerBtn">🖨 Print BA</button>';
+      if(anchor)anchor.insertAdjacentHTML('afterend',html); else actions.insertAdjacentHTML('beforeend',html);
     }
     if(!el('baPickerModal')){
       document.body.insertAdjacentHTML('beforeend',`
@@ -44,7 +50,7 @@
         </div>
       </div>`);
     }
-    if(el('baPickerBtn'))el('baPickerBtn').onclick=openPicker;
+    const b=el('baPickerBtn');if(b){b.style.display='';b.textContent='🖨 Print BA';b.onclick=openPicker;}
     if(el('baPickerClose'))el('baPickerClose').onclick=()=>el('baPickerModal').classList.remove('show');
     if(el('baPickerReload'))el('baPickerReload').onclick=loadBaList;
     if(el('baPickerDate'))el('baPickerDate').onchange=loadBaList;
@@ -55,6 +61,7 @@
 
   async function openPicker(){
     ensureUi();
+    if(!el('baPickerModal'))return;
     el('baPickerModal').classList.add('show');
     el('baPickerMsg').textContent='';
     await loadBaList();
@@ -118,15 +125,11 @@
     document.querySelectorAll('[data-print-ba],[data-spv-print-v83]').forEach(x=>x.remove());
     const bar=el('spvBaPrintBar');if(bar)bar.style.display='none';
   }
-  try{
-    const prevRender=renderHistory;
-    renderHistory=function(){const r=prevRender.apply(this,arguments);setTimeout(cleanInlinePrint,0);return r;};
-  }catch(_){ }
-  try{
-    const prevView=viewIncident;
-    viewIncident=async function(){const r=await prevView.apply(this,arguments);setTimeout(cleanInlinePrint,0);return r;};window.viewIncident=viewIncident;
-  }catch(_){ }
+  try{const prevRender=window.renderHistory||renderHistory;window.renderHistory=function(){const r=prevRender.apply(this,arguments);setTimeout(()=>{cleanInlinePrint();ensureUi();},0);return r};renderHistory=window.renderHistory;}catch(_){ }
+  try{const prevView=window.viewIncident||viewIncident;window.viewIncident=async function(){const r=await prevView.apply(this,arguments);setTimeout(()=>{cleanInlinePrint();ensureUi();},0);return r};viewIncident=window.viewIncident;}catch(_){ }
+  try{const prevShow=window.showApp||showApp;window.showApp=async function(){const r=await prevShow.apply(this,arguments);setTimeout(ensureUi,0);setTimeout(ensureUi,250);return r};showApp=window.showApp;}catch(_){ }
+  try{const prevLoad=window.loadHistory||loadHistory;window.loadHistory=async function(){const r=await prevLoad.apply(this,arguments);setTimeout(ensureUi,0);return r};loadHistory=window.loadHistory;}catch(_){ }
 
-  function setBuild(){const b=el('buildBadge');if(b)b.textContent='v85';}
-  [80,250,700,1400].forEach(ms=>setTimeout(()=>{ensureUi();cleanInlinePrint();setBuild();},ms));
+  const app=el('app');if(app)new MutationObserver(()=>setTimeout(ensureUi,0)).observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+  [50,150,350,700,1200,2200,3500].forEach(ms=>setTimeout(()=>{ensureUi();cleanInlinePrint();},ms));
 })();
