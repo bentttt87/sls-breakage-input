@@ -1,1 +1,30 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><title>BA + Foto - SLS</title></head><body><script>const q=location.search;location.replace('/ba_print_v93.html'+(q?q+'&tpl=v106':'?tpl=v106'));</script></body></html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title>BA + Foto - SLS</title><style>html,body{margin:0;width:100%;height:100%;background:#eef2f6;font-family:Arial,sans-serif}#baFrame{border:0;width:100%;height:100vh;display:block;background:#eef2f6}#boot{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:flex-start;padding:24px;color:#52647a;background:#eef2f6;z-index:2}.hide{display:none!important}</style></head><body><div id="boot">Memuat BA Breakage…</div><iframe id="baFrame" title="BA Breakage"></iframe><script>
+(function(){
+  const q=location.search||'';
+  const frame=document.getElementById('baFrame');
+  const boot=document.getElementById('boot');
+  frame.src='/ba_print_core_v106.html'+q+(q?'&':'?')+'direct=v119';
+  frame.addEventListener('load',function(){
+    try{
+      const w=frame.contentWindow,d=frame.contentDocument;
+      if(!w||!d)throw new Error('Dokumen BA tidak dapat diakses');
+      function applyTerminology(){
+        try{
+          const p=new URLSearchParams(w.location.search),k=p.get('k');
+          let data=null;try{data=JSON.parse(w.localStorage.getItem(k)||'null')}catch(_){ }
+          const items=Array.isArray(data?.items)?data.items:[];
+          const type=String(data?.incident_type||items[0]?.incident_type||'delivery').toLowerCase();
+          const h=d.querySelector('.title h1');if(h)h.textContent=type==='warehouse'?'BERITA ACARA PECAH PALLET':'BERITA ACARA PECAH KIRIM';
+          const reps=[['KEPECAHAN PENGIRIMAN','PECAH KIRIM'],['PECAH PENGIRIMAN','PECAH KIRIM'],['PECAH GUDANG','PECAH PALLET'],['Pecah Pengiriman','Pecah Kirim'],['Pecah Gudang','Pecah Pallet']];
+          const walker=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+          nodes.forEach(n=>{if(n.parentElement&&['SCRIPT','STYLE'].includes(n.parentElement.tagName))return;let v=n.nodeValue;reps.forEach(([a,b])=>v=v.split(a).join(b));if(v!==n.nodeValue)n.nodeValue=v;});
+        }catch(e){console.warn('[BA shell] terminology',e)}
+      }
+      applyTerminology();[120,450,1000].forEach(ms=>setTimeout(applyTerminology,ms));
+      const s=d.createElement('script');s.src='/ba_signature_v117.js?v=20260925-v119';s.onload=()=>console.log('[BA shell] signature ready');s.onerror=()=>console.warn('[BA shell] signature script failed');d.head.appendChild(s);
+      boot.classList.add('hide');
+    }catch(e){boot.textContent='Gagal memuat BA: '+String(e.message||e);}
+  });
+  setTimeout(()=>{if(!boot.classList.contains('hide'))boot.textContent='BA masih dimuat. Jika tidak berubah, refresh halaman sekali.';},8000);
+})();
+</script></body></html>
