@@ -1,16 +1,1 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><title>BA + Foto - SLS</title></head><body style="margin:0;background:#eef2f6;font-family:Arial,sans-serif"><div id="bootBa118" style="padding:24px;color:#52647a">Memuat BA Breakage…</div><script>
-(async()=>{try{
-  let html=await fetch('/ba_print_core_v106.html?v=20260925-v118',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('BA core '+r.status);return r.text()});
-  const patch=`<script>(function(){
-    function getType(){try{var q=new URLSearchParams(location.search),k=q.get('k'),d=JSON.parse(localStorage.getItem(k)||'null');var t=String((d&&d.incident_type)||(d&&d.items&&d.items[0]&&d.items[0].incident_type)||'').toLowerCase();return t;}catch(e){return '';}}
-    function apply(){
-      var t=getType(),h=document.querySelector('.title h1');
-      if(h)h.textContent=t==='warehouse'?'BERITA ACARA PECAH PALLET':'BERITA ACARA PECAH KIRIM';
-      var reps=[['KEPECAHAN PENGIRIMAN','PECAH KIRIM'],['PECAH PENGIRIMAN','PECAH KIRIM'],['PECAH GUDANG','PECAH PALLET'],['Pecah Pengiriman','Pecah Kirim'],['Pecah Gudang','Pecah Pallet']];
-      var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);var a=[];while(w.nextNode())a.push(w.currentNode);a.forEach(function(n){if(n.parentElement&&['SCRIPT','STYLE'].indexOf(n.parentElement.tagName)>=0)return;var v=n.nodeValue;reps.forEach(function(p){v=v.split(p[0]).join(p[1]);});if(v!==n.nodeValue)n.nodeValue=v;});
-    }
-    [50,200,700,1500].forEach(function(ms){setTimeout(apply,ms)});new MutationObserver(apply).observe(document.documentElement,{subtree:true,childList:true});
-  })();<\/script><script src="/ba_signature_v117.js?v=20260925-v118"><\/script>`;
-  html=html.replace('</body>',patch+'</body>');document.open();document.write(html);document.close();
-}catch(e){document.body.innerHTML='<div style="margin:40px auto;max-width:720px;background:#fff;padding:20px;color:#b42318"><b>Gagal memuat BA.</b><br>'+String(e.message||e)+'</div>'}})();
-</script></body></html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title>BA + Foto - SLS</title></head><body style="margin:0;background:#eef2f6;font-family:Arial,sans-serif"><div style="padding:24px;color:#52647a">Memuat BA Breakage…</div><script>location.replace('/ba_print.html'+location.search+(location.search?'&':'?')+'legacy=v93-v119');</script></body></html>
