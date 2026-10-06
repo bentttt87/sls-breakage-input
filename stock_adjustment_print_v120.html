@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Adjustment Bulanan - SLS</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf1f5;font-family:Arial,Helvetica,sans-serif;color:#111}
+.toolbar{position:sticky;top:0;z-index:9;background:#0c2748;color:#fff;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar .grow{flex:1}.toolbar button{border:0;border-radius:7px;padding:9px 14px;font-weight:700;cursor:pointer}.toolbar .print,.toolbar .excel{background:#fff;color:#0c2748}.toolbar button:disabled{opacity:.5}.toolbar .close{background:#dfe8f2;color:#0c2748}.status{font-size:11px}
+.note{max-width:210mm;margin:10px auto 0;background:#fff7df;border:1px solid #eed28b;color:#5d4a14;padding:8px 12px;font-size:11px}
+.sheet{page:portrait;width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:13mm 12mm 15mm;box-shadow:0 2px 14px #0002}
+.appendix{page:landscape;width:297mm;min-height:210mm;margin:12px auto;background:#fff;padding:10mm;box-shadow:0 2px 14px #0002}
+.head{display:grid;grid-template-columns:42mm 1fr 59mm;align-items:start;min-height:28mm}
+.logo-crop{width:34mm;height:24mm;overflow:hidden;position:relative}.logo-crop img{position:absolute;width:133mm;height:auto;left:-95mm;top:-2mm;max-width:none}
+.title{text-align:center;font-weight:700;font-size:14px;line-height:1.22;padding-top:7mm}.meta{font-size:11px;line-height:1.45;padding-top:8mm}.meta-row{display:grid;grid-template-columns:17mm 3mm 1fr}
+.edit{min-width:18mm}.edit:focus{outline:1px dashed #7a9abc;background:#f8fbff}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th,td{border:1.2px solid #111;padding:4px 5px;vertical-align:middle}thead th{text-align:center;font-weight:700}
+.main-table .no{width:9mm}.main-table .material{width:45mm}.main-table .kw{width:12mm}.main-table .uom{width:17mm}.main-table .qty{width:17mm}
+.main-table td:nth-child(1),.main-table td:nth-child(3),.main-table td:nth-child(4),.main-table td:nth-child(5),.main-table td:nth-child(6){text-align:center}.main-table td:nth-child(2){text-align:left}
+.keterangan{text-align:left!important;white-space:pre-line;line-height:1.3;vertical-align:top!important}.total-label{text-align:center!important;font-weight:700}.total-row td{font-weight:700}
+.signatures{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;margin-top:8mm;text-align:center;font-size:10px}.sig-role{font-weight:700;min-height:8mm}.sig-space{height:23mm}.sig-name{font-weight:700}
+.source{margin-top:8mm;border-top:1px solid #bbb;padding-top:3mm;font-size:8.5px;color:#666;display:flex;justify-content:space-between;gap:8mm}
+.appendix h2{font-size:15px;margin:0 0 1.5mm}.appendix .sub{font-size:9px;color:#555;margin-bottom:4mm}
+.appendix table{font-size:8px}.appendix th,.appendix td{padding:2.2px 3px}.appendix tr{break-inside:avoid;page-break-inside:avoid}.appendix td{text-align:center}.appendix td.left{text-align:left}
+.c-no{width:8mm}.c-ba{width:31mm}.c-status{width:27mm}.c-motif{width:31mm}.c-seri{width:23mm}.c-factory{width:27mm}.c-type{width:30mm}.c-remark{width:63mm}.c-photo{width:47mm}
+.print-select{width:100%;border:1px solid #b7c6d6;border-radius:4px;background:#fff;padding:3px 4px;font:inherit}
+.remark-cell{text-align:left!important;white-space:pre-wrap;line-height:1.25}.photo-cell{padding:1.5mm!important}
+.photo-wrap{display:flex;flex-direction:column;gap:1mm;align-items:center}.photo-wrap img{width:100%;height:31mm;object-fit:contain;border:1px solid #bbb;background:#f7f7f7}.photo-cap{font-size:6.3px;color:#555}
+.photo-missing{font-size:7px;color:#b42318;border:1px dashed #d7a5a0;padding:3mm 1mm;width:100%}
+.rule-note{font-size:8px;margin-top:4mm;padding:3mm;background:#f7f9fc;border:1px solid #dce3eb;line-height:1.4}
+@page portrait{size:A4 portrait;margin:0}@page landscape{size:A4 landscape;margin:0}
+@media print{
+ body{background:#fff}.toolbar,.note{display:none!important}.sheet,.appendix{margin:0;box-shadow:none}
+ .sheet{width:210mm;min-height:297mm;page-break-after:always}.appendix{width:297mm;min-height:210mm}
+ .print-select{appearance:none;-webkit-appearance:none;border:0;padding:0;background:transparent}
+ .edit{outline:none!important;background:transparent!important}
+}
+@media(max-width:900px){.sheet{width:100%;min-height:auto;margin:0;padding:12px;box-shadow:none}.appendix{width:100%;min-height:auto;margin:0;padding:12px;box-shadow:none;overflow-x:auto}.head{grid-template-columns:1fr}.title,.meta{text-align:left;padding-top:2mm}.appendix table{min-width:1050px}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>FORM STOCK ADJUSMENT BULANAN</b>
+  <span id="status" class="status">Menyiapkan foto…</span>
+  <span class="grow"></span>
+  <button class="excel" id="excelBtn" disabled>⬇ Download Excel</button>
+  <button class="close" onclick="window.close()">Tutup</button>
+  <button id="printBtn" class="print" disabled onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="note">Lampiran mengikuti format kerja: 1 foto = 1 baris. Dropdown pada tabel dapat disesuaikan sebelum print/download Excel.</div>
+<main id="app"></main>
+<script>
+(async function(){
+const SUPABASE_URL='https://mfdckngkvjnemwgmkiiv.supabase.co';
+const PUBLIC_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZGNrbmdrdmpuZW13Z21raWl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDcxMjUsImV4cCI6MjEwMTU4MzEyNX0.mFhv9hgQvjzg6AYfmEI2GiJ71I2xSkOozC43mwFcogU';
+const q=new URLSearchParams(location.search),key=q.get('k'),status=document.getElementById('status'),printBtn=document.getElementById('printBtn'),excelBtn=document.getElementById('excelBtn'),raw=key?localStorage.getItem(key):null;
+if(!raw){document.getElementById('app').innerHTML='<div class="sheet"><b style="color:#b42318">Data rekap tidak ditemukan.</b></div>';status.textContent='Data tidak tersedia';return}
+let d;try{d=JSON.parse(raw)}catch(e){return}
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt=n=>Number(n||0).toLocaleString('id-ID',{maximumFractionDigits:2});
+const fd=s=>{const x=new Date(s+'T00:00:00');return isNaN(x)?s:x.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase()};
+const up=v=>String(v??'').trim().toUpperCase();
+const deriveFactory=s=>up(s).startsWith('S')?'SRKI':up(s).startsWith('R')?'RCI':'';
+const getSession=()=>{for(const k of ['sls_breakage_input_session','sls_breakage_session']){try{const s=JSON.parse(sessionStorage.getItem(k)||'null');if(s?.access_token)return s}catch(_){}}return null};
+async function fetchPhoto(path){
+ const s=getSession();if(!s?.access_token)throw new Error('Sesi login tidak ditemukan');
+ const url=SUPABASE_URL+'/storage/v1/object/authenticated/breakage-evidence/'+String(path).split('/').map(encodeURIComponent).join('/');
+ const r=await fetch(url,{headers:{apikey:PUBLIC_ANON,Authorization:'Bearer '+s.access_token},cache:'no-store'});
+ if(!r.ok)throw new Error('Foto '+r.status);
+ const blob=await r.blob();return {blob,url:URL.createObjectURL(blob)};
+}
+const rowBy=(material,uom)=>d.rows.find(x=>x.material===material&&x.uom===uom)||{material,kw:'1',uom,in_qty:0,out_qty:0};
+const rows=[rowBy('Roman','BOX'),rowBy('Roman','PCS'),rowBy('Roman Granit','BOX'),rowBy('Roman Granit','PCS')],ket=esc(d.keterangan).replace(/\n/g,'<br>');
+const mainRows=rows.map((r,i)=>'<tr>'+(i===0?'<td rowspan="4">1.</td>':'')+'<td>'+esc(r.material)+'</td><td>'+esc(r.kw||'1')+'</td><td>'+esc(r.uom)+'</td><td>'+fmt(r.in_qty)+'</td><td>'+fmt(r.out_qty)+'</td>'+(i===0?'<td rowspan="4" class="keterangan edit" contenteditable="true">'+ket+'</td>':'')+'</tr>').join('');
+const totalRows='<tr class="total-row"><td colspan="3" rowspan="2" class="total-label">Total</td><td>BOX</td><td>0</td><td>'+fmt(d.total_box)+'</td><td rowspan="2"></td></tr><tr class="total-row"><td>PCS</td><td>0</td><td>'+fmt(d.total_pcs)+'</td></tr>';
+const sg=d.signatory||{},sig=[['Manager Distribusi','Mei Hoa'],['Manager Accounting','Irawati'],['Spv. Inventory Control',sg.spv||''],['Senior Staff. Ware',sg.senior||'']];
+
+const photoRows=[];
+(d.incidents||[]).forEach((x,incidentIndex)=>{
+ const qty=Math.max(0,Number(x.qty_box||0)),need=Math.max(1,Math.min(5,Math.ceil(qty||1)));
+ const paths=(Array.isArray(x.photo_paths)?x.photo_paths:[]).slice(0,need);
+ const count=Math.max(1,paths.length);
+ for(let p=0;p<count;p++){
+   photoRows.push({
+     incidentIndex,photoIndex:p,path:paths[p]||'',blob:null,
+     no_ba:x.no_ba||'',status_default:String(x.incident_type||'').toLowerCase()==='warehouse'?'Pecah Gudang':'Pecah Kirim',
+     item_code:x.item_code||'',series:x.ceramic_series||'',
+     factory_default:deriveFactory(x.ceramic_series)||x.factory||'',
+     motif_type:x.motif_type||'Motif Standard',
+     remark:x.cause_detail||''
+   });
+ }
+});
+
+const detailRows=photoRows.map((r,i)=>{
+ const sid='statusSel'+i,fid='factorySel'+i,mid='motifSel'+i,cid='photoCell'+i;
+ return '<tr>'+
+  '<td>'+(i+1)+'</td>'+
+  '<td class="left">'+esc(r.no_ba||'—')+'</td>'+
+  '<td><select id="'+sid+'" class="print-select"><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></td>'+
+  '<td class="left">'+esc(r.item_code||'—')+'</td>'+
+  '<td class="left">'+esc(r.series||'—')+'</td>'+
+  '<td><select id="'+fid+'" class="print-select"><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></td>'+
+  '<td><select id="'+mid+'" class="print-select"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></td>'+
+  '<td class="remark-cell">'+esc(r.remark||'')+'</td>'+
+  '<td class="photo-cell" id="'+cid+'"><span style="color:#777">Memuat foto…</span></td>'+
+ '</tr>';
+}).join('');
+
+document.getElementById('app').innerHTML=
+'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v120" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
+'<div style="font-size:11px;margin:-3mm 0 4mm"><div><b>Plant</b>&nbsp;&nbsp;&nbsp;&nbsp;: <span class="edit" contenteditable="true">'+esc(d.plant)+'</span></div><div><b>Periode</b> : '+esc(d.period_label)+'</div><div><b>Cut-off</b> : '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+'</div></div>'+
+'<table class="main-table"><thead><tr><th class="no">NO.</th><th class="material">MATERIAL GROUP<br>/ MOTIF</th><th class="kw">KW</th><th class="uom">UOM</th><th class="qty">IN</th><th class="qty">OUT</th><th>KETERANGAN</th></tr></thead><tbody>'+mainRows+totalRows+'</tbody></table>'+
+'<div class="signatures">'+sig.map(([role,name])=>'<div><div class="sig-role">'+esc(role)+'</div><div class="sig-space"></div><div class="sig-name edit" contenteditable="true">( '+esc(name||'____________________')+' )</div></div>').join('')+'</div>'+
+'<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
+'<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Cut-off '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · 1 foto = 1 baris.</div>'+
+'<table id="appendixTable"><thead><tr><th class="c-no">No</th><th class="c-ba">No BA</th><th class="c-status">Status Produk</th><th class="c-motif">Motif</th><th class="c-seri">Seri</th><th class="c-factory">Pabrik Asal</th><th class="c-type">Motif Type</th><th class="c-remark">Remark</th><th class="c-photo">Foto</th></tr></thead><tbody>'+detailRows+'</tbody></table>'+
+'<div class="rule-note"><b>Penyesuaian:</b> kolom Tanggal, Qty, Size, dan Pabrik lama dihapus. Pabrik Asal dan Status Produk dapat dipilih saat cetak. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
+
+photoRows.forEach((r,i)=>{
+ const s=document.getElementById('statusSel'+i),f=document.getElementById('factorySel'+i),m=document.getElementById('motifSel'+i);
+ if(s)s.value=r.status_default;if(f&&['SRKI','RCI'].includes(r.factory_default))f.value=r.factory_default;if(m)m.value=r.motif_type;
+});
+
+let total=0,failed=0;
+for(let i=0;i<photoRows.length;i++){
+ const r=photoRows[i],cell=document.getElementById('photoCell'+i);if(!cell)continue;
+ if(!r.path){cell.innerHTML='<div class="photo-missing">Tidak ada foto evidence</div>';continue}
+ total++;status.textContent='Memuat foto '+total+' / '+photoRows.filter(x=>x.path).length+'…';
+ try{
+   const p=await fetchPhoto(r.path);r.blob=p.blob;
+   cell.innerHTML='<div class="photo-wrap"><img src="'+p.url+'" alt="Foto '+(r.photoIndex+1)+'"><div class="photo-cap">Foto '+(r.photoIndex+1)+'</div></div>';
+ }catch(e){failed++;cell.innerHTML='<div class="photo-missing">'+esc(String(e.message||e))+'</div>'}
+}
+await Promise.all([...document.images].map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=res})));
+status.textContent='Siap · '+total+' foto'+(failed?' · '+failed+' gagal':'');printBtn.disabled=false;excelBtn.disabled=false;
+
+function loadExcelJs(){
+ return new Promise((resolve,reject)=>{
+   if(window.ExcelJS)return resolve();
+   const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+   s.onload=()=>resolve();s.onerror=()=>reject(new Error('Library Excel gagal dimuat'));document.head.appendChild(s);
+ });
+}
+function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob)})}
+excelBtn.onclick=async()=>{
+ excelBtn.disabled=true;const old=status.textContent;status.textContent='Membuat Excel…';
+ try{
+   await loadExcelJs();
+   const wb=new ExcelJS.Workbook();wb.creator='SLS Breakage Monitoring';wb.created=new Date();
+   const ws=wb.addWorksheet('Lampiran Breakage',{pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9}});
+   ws.mergeCells('A1:I1');ws.getCell('A1').value='Lampiran List Breakage — '+d.rdc+' · '+d.period_label;ws.getCell('A1').font={bold:true,size:14};
+   ws.mergeCells('A2:I2');ws.getCell('A2').value='Cut-off '+d.cutoff_start+' s.d. '+d.cutoff_end+' · 1 foto = 1 baris';
+   ws.getCell('A2').font={italic:true,size:9,color:{argb:'FF666666'}};
+   const headers=['No','No BA','Status Produk','Motif','Seri','Pabrik Asal','Motif Type','Remark','Foto'];
+   const hr=ws.addRow(headers);hr.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17365D'}};c.alignment={horizontal:'center',vertical:'middle'};c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}});
+   ws.columns=[{width:6},{width:24},{width:17},{width:22},{width:16},{width:16},{width:18},{width:42},{width:24}];
+   for(let i=0;i<photoRows.length;i++){
+     const pr=photoRows[i],statusVal=document.getElementById('statusSel'+i)?.value||pr.status_default,factoryVal=document.getElementById('factorySel'+i)?.value||pr.factory_default,motifVal=document.getElementById('motifSel'+i)?.value||pr.motif_type;
+     const er=ws.addRow([i+1,pr.no_ba,statusVal,pr.item_code,pr.series,factoryVal,motifVal,pr.remark,'']);
+     er.height=78;er.eachCell(c=>{c.alignment={vertical:'middle',wrapText:true};c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}});
+     er.getCell(1).alignment={horizontal:'center',vertical:'middle'};er.getCell(3).alignment={horizontal:'center',vertical:'middle'};er.getCell(6).alignment={horizontal:'center',vertical:'middle'};er.getCell(7).alignment={horizontal:'center',vertical:'middle'};
+     er.getCell(3).dataValidation={type:'list',allowBlank:false,formulae:['"Pecah Kirim,Pecah Gudang"']};
+     er.getCell(6).dataValidation={type:'list',allowBlank:false,formulae:['"SRKI,RCI"']};
+     er.getCell(7).dataValidation={type:'list',allowBlank:false,formulae:['"Motif Standard,Motif TP"']};
+     if(pr.blob){
+       const dataUrl=await blobToDataUrl(pr.blob),ext=(pr.blob.type||'').includes('png')?'png':'jpeg',imgId=wb.addImage({base64:dataUrl,extension:ext});
+       ws.addImage(imgId,{tl:{col:8.05,row:er.number-1+0.08},ext:{width:150,height:92},editAs:'oneCell'});
+     }else{
+       er.getCell(9).value='Foto tidak tersedia';er.getCell(9).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+     }
+   }
+   ws.views=[{state:'frozen',ySplit:3}];
+   const buf=await wb.xlsx.writeBuffer(),blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),a=document.createElement('a');
+   a.href=URL.createObjectURL(blob);a.download=('Stock_Adjustment_'+String(d.rdc||'RDC')+'_'+String(d.period||'').replace('-','')+'.xlsx').replace(/\s+/g,'_');
+   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+   status.textContent='Excel selesai dibuat · '+photoRows.length+' baris';
+ }catch(e){status.textContent='Excel gagal: '+String(e.message||e);alert(status.textContent)}
+ finally{excelBtn.disabled=false;setTimeout(()=>{if(status.textContent.startsWith('Excel selesai'))status.textContent=old},2500)}
+};
+})();
+</script>
+</body></html>
