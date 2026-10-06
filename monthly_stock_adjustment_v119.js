@@ -135,7 +135,7 @@
       const payload={
         version:'v119',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
-        rows,total_box:box,total_pcs:pcs,keterangan,signatory:{spv,senior},approved_incident_count:approved.length,
+        rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},approved_incident_count:approved.length,
         incidents:approved.map(x=>({
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
