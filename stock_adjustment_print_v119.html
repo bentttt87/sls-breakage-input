@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Adjustment Bulanan - SLS</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf1f5;font-family:Arial,Helvetica,sans-serif;color:#111}
+.toolbar{position:sticky;top:0;z-index:5;background:#0c2748;color:#fff;padding:10px 14px;display:flex;gap:8px;align-items:center}.toolbar .grow{flex:1}.toolbar button{border:0;border-radius:7px;padding:9px 14px;font-weight:700}.toolbar .print{background:#fff;color:#0c2748}.toolbar .print:disabled{opacity:.5}.toolbar .close{background:#dfe8f2;color:#0c2748}.status{font-size:11px}
+.note{max-width:210mm;margin:10px auto 0;background:#fff7df;border:1px solid #eed28b;color:#5d4a14;padding:8px 12px;font-size:11px}
+.sheet,.appendix{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:13mm 12mm 15mm;box-shadow:0 2px 14px #0002}
+.head{display:grid;grid-template-columns:42mm 1fr 59mm;align-items:start;min-height:28mm}.logo-crop{width:34mm;height:24mm;overflow:hidden;position:relative}.logo-crop img{position:absolute;width:133mm;height:auto;left:-95mm;top:-2mm;max-width:none}
+.title{text-align:center;font-weight:700;font-size:14px;line-height:1.22;padding-top:7mm}.meta{font-size:11px;line-height:1.45;padding-top:8mm}.meta-row{display:grid;grid-template-columns:17mm 3mm 1fr}.edit{min-width:18mm}.edit:focus{outline:1px dashed #7a9abc;background:#f8fbff}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th,td{border:1.2px solid #111;padding:4px 5px;vertical-align:middle}thead th{text-align:center;font-weight:700}
+.main-table .no{width:9mm}.main-table .material{width:45mm}.main-table .kw{width:12mm}.main-table .uom{width:17mm}.main-table .qty{width:17mm}.main-table td:nth-child(1),.main-table td:nth-child(3),.main-table td:nth-child(4),.main-table td:nth-child(5),.main-table td:nth-child(6){text-align:center}.main-table td:nth-child(2){text-align:left}.keterangan{text-align:left!important;white-space:pre-line;line-height:1.3;vertical-align:top!important}
+.total-label{text-align:center!important;font-weight:700}.total-row td{font-weight:700}
+.signatures{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;margin-top:8mm;text-align:center;font-size:10px}.sig-role{font-weight:700;min-height:8mm}.sig-space{height:23mm}.sig-name{font-weight:700}
+.source{margin-top:8mm;border-top:1px solid #bbb;padding-top:3mm;font-size:8.5px;color:#666;display:flex;justify-content:space-between;gap:8mm}
+.appendix{padding:10mm}.appendix h2{font-size:15px;margin:0 0 1.5mm}.appendix .sub{font-size:9px;color:#555;margin-bottom:4mm}
+.appendix table{font-size:7.8px}.appendix th,.appendix td{padding:2.2px 3px}.appendix tr{break-inside:avoid;page-break-inside:avoid}.appendix td{text-align:center}.appendix td.left{text-align:left}
+.c-no{width:7mm}.c-date{width:17mm}.c-ba{width:22mm}.c-item{width:25mm}.c-series{width:18mm}.c-kind{width:16mm}.c-size{width:14mm}.c-qty{width:10mm}.c-factory{width:13mm}.c-photo{width:48mm}
+.photo-cell{padding:1.5mm!important}.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5mm;align-items:center}.photo-grid.one{grid-template-columns:1fr}.photo-wrap{display:flex;flex-direction:column;gap:1mm;align-items:center}.photo-wrap img{width:100%;height:22mm;object-fit:cover;border:1px solid #bbb;background:#f5f5f5}.photo-grid.one .photo-wrap img{height:30mm;object-fit:contain}.photo-cap{font-size:6.2px;color:#555}.photo-missing{font-size:7px;color:#b42318;border:1px dashed #d7a5a0;padding:3mm 1mm;width:100%}.rule-note{font-size:8px;margin-top:4mm;padding:3mm;background:#f7f9fc;border:1px solid #dce3eb;line-height:1.4}
+@media print{@page{size:A4 portrait;margin:0}body{background:#fff}.toolbar,.note{display:none!important}.sheet,.appendix{margin:0;box-shadow:none;width:210mm;min-height:297mm}.sheet{page-break-after:always}.appendix{page-break-after:auto}}
+@media(max-width:900px){.sheet,.appendix{width:100%;min-height:auto;margin:0;padding:12px;box-shadow:none}.head{grid-template-columns:1fr}.title,.meta{text-align:left;padding-top:2mm}.toolbar{position:relative;flex-wrap:wrap}.appendix{overflow-x:auto}.appendix table{min-width:900px}}
+</style></head>
+<body>
+<div class="toolbar"><b>FORM STOCK ADJUSMENT BULANAN</b><span id="status" class="status">Menyiapkan foto…</span><span class="grow"></span><button class="close" onclick="window.close()">Tutup</button><button id="printBtn" class="print" disabled onclick="window.print()">🖨 Print / Save PDF</button></div>
+<div class="note">Tunggu sampai semua foto selesai dimuat. Foto akan muncul langsung di kolom FOTO pada baris item.</div>
+<main id="app"></main>
+<script>
+(async function(){
+const SUPABASE_URL='https://mfdckngkvjnemwgmkiiv.supabase.co';
+const PUBLIC_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZGNrbmdrdmpuZW13Z21raWl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDcxMjUsImV4cCI6MjEwMTU4MzEyNX0.mFhv9hgQvjzg6AYfmEI2GiJ71I2xSkOozC43mwFcogU';
+const q=new URLSearchParams(location.search),key=q.get('k'),status=document.getElementById('status'),printBtn=document.getElementById('printBtn'),raw=key?localStorage.getItem(key):null;
+if(!raw){document.getElementById('app').innerHTML='<div class="sheet"><b style="color:#b42318">Data rekap tidak ditemukan.</b></div>';status.textContent='Data tidak tersedia';return}
+let d;try{d=JSON.parse(raw)}catch(e){return}
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt=n=>Number(n||0).toLocaleString('id-ID',{maximumFractionDigits:2});
+const fd=s=>{const x=new Date(s+'T00:00:00');return isNaN(x)?s:x.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase()};
+const getSession=()=>{for(const k of ['sls_breakage_input_session','sls_breakage_session']){try{const s=JSON.parse(sessionStorage.getItem(k)||'null');if(s?.access_token)return s}catch(_){}}return null};
+async function photoUrl(path){const s=getSession();if(!s?.access_token)throw new Error('Sesi login tidak ditemukan');const url=SUPABASE_URL+'/storage/v1/object/authenticated/breakage-evidence/'+String(path).split('/').map(encodeURIComponent).join('/');const r=await fetch(url,{headers:{apikey:PUBLIC_ANON,Authorization:'Bearer '+s.access_token},cache:'no-store'});if(!r.ok)throw new Error('Foto '+r.status);return URL.createObjectURL(await r.blob())}
+const rowBy=(material,uom)=>d.rows.find(x=>x.material===material&&x.uom===uom)||{material,kw:'1',uom,in_qty:0,out_qty:0};
+const rows=[rowBy('Roman','BOX'),rowBy('Roman','PCS'),rowBy('Roman Granit','BOX'),rowBy('Roman Granit','PCS')],ket=esc(d.keterangan).replace(/\n/g,'<br>');
+const mainRows=rows.map((r,i)=>'<tr>'+(i===0?'<td rowspan="4">1.</td>':'')+'<td>'+esc(r.material)+'</td><td>'+esc(r.kw||'1')+'</td><td>'+esc(r.uom)+'</td><td>'+fmt(r.in_qty)+'</td><td>'+fmt(r.out_qty)+'</td>'+(i===0?'<td rowspan="4" class="keterangan edit" contenteditable="true">'+ket+'</td>':'')+'</tr>').join('');
+const totalRows='<tr class="total-row"><td colspan="3" rowspan="2" class="total-label">Total</td><td>BOX</td><td>0</td><td>'+fmt(d.total_box)+'</td><td rowspan="2"></td></tr><tr class="total-row"><td>PCS</td><td>0</td><td>'+fmt(d.total_pcs)+'</td></tr>';
+const sg=d.signatory||{},sig=[['Manager Distribusi','Mei Hoa'],['Manager Accounting','Irawati'],['Spv. Inventory Control',sg.spv||''],['Senior Staff. Ware',sg.senior||'']];
+const detailRows=(d.incidents||[]).map((x,i)=>{
+ const qty=Math.max(0,Number(x.qty_box||0)),need=Math.max(1,Math.min(5,Math.ceil(qty||1))),paths=(Array.isArray(x.photo_paths)?x.photo_paths:[]).slice(0,need);
+ return '<tr><td>'+(i+1)+'</td><td>'+esc(x.occurrence_date)+'</td><td class="left">'+esc(x.no_ba||'—')+'</td><td class="left">'+esc(x.item_code||'—')+'</td><td class="left">'+esc(x.ceramic_series||'—')+'</td><td>'+esc(x.product_kind||x.product_type||'—')+'</td><td>'+esc(x.product_size||'—')+'</td><td>'+fmt(qty)+'</td><td>'+esc(x.factory||'—')+'</td><td class="photo-cell" id="photoCell'+i+'" data-need="'+need+'"><span style="color:#777">Memuat foto…</span></td></tr>';
+}).join('');
+document.getElementById('app').innerHTML=
+'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v119" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
+'<div style="font-size:11px;margin:-3mm 0 4mm"><div><b>Plant</b>&nbsp;&nbsp;&nbsp;&nbsp;: <span class="edit" contenteditable="true">'+esc(d.plant)+'</span></div><div><b>Periode</b> : '+esc(d.period_label)+'</div><div><b>Cut-off</b> : '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+'</div></div>'+
+'<table class="main-table"><thead><tr><th class="no">NO.</th><th class="material">MATERIAL GROUP<br>/ MOTIF</th><th class="kw">KW</th><th class="uom">UOM</th><th class="qty">IN</th><th class="qty">OUT</th><th>KETERANGAN</th></tr></thead><tbody>'+mainRows+totalRows+'</tbody></table>'+
+'<div class="signatures">'+sig.map(([role,name])=>'<div><div class="sig-role">'+esc(role)+'</div><div class="sig-space"></div><div class="sig-name edit" contenteditable="true">( '+esc(name||'____________________')+' )</div></div>').join('')+'</div>'+
+'<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
+'<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Cut-off '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · Foto evidence ditampilkan langsung pada sisi kanan baris item.</div>'+
+'<table><thead><tr><th class="c-no">No</th><th class="c-date">Tanggal</th><th class="c-ba">No BA</th><th class="c-item">Item</th><th class="c-series">Series/Motif</th><th class="c-kind">Jenis</th><th class="c-size">Size</th><th class="c-qty">Qty</th><th class="c-factory">Pabrik</th><th class="c-photo">FOTO PECAHAN</th></tr></thead><tbody>'+detailRows+'</tbody></table>'+
+'<div class="rule-note"><b>Aturan foto:</b> Qty 1 BOX memakai Foto 1; Qty 2 BOX memakai Foto 1–2; Qty 3 BOX memakai Foto 1–3, dan seterusnya sampai maksimal 5 foto sesuai evidence yang diupload staff.</div></section>';
+
+let total=0,failed=0,shortage=0;
+for(let i=0;i<(d.incidents||[]).length;i++){
+ const x=d.incidents[i],cell=document.getElementById('photoCell'+i);if(!cell)continue;
+ const need=Number(cell.dataset.need||1),paths=(Array.isArray(x.photo_paths)?x.photo_paths:[]).slice(0,need);total+=paths.length;
+ if(!paths.length){cell.innerHTML='<div class="photo-missing">Tidak ada foto evidence</div>';shortage++;continue}
+ const loaded=[];
+ for(let j=0;j<paths.length;j++){status.textContent='Memuat foto item '+(i+1)+' · '+(j+1)+'/'+paths.length+'…';try{loaded.push({ok:true,url:await photoUrl(paths[j]),idx:j+1})}catch(e){loaded.push({ok:false,error:String(e.message||e),idx:j+1});failed++}}
+ if(paths.length<need)shortage++;
+ cell.innerHTML='<div class="photo-grid '+(loaded.length===1?'one':'')+'">'+loaded.map(p=>'<div class="photo-wrap">'+(p.ok?'<img src="'+p.url+'" alt="Foto '+p.idx+'">':'<div class="photo-missing">'+esc(p.error||'Gagal memuat')+'</div>')+'<div class="photo-cap">Foto '+p.idx+'</div></div>').join('')+'</div>'+(paths.length<need?'<div style="font-size:6.5px;color:#b42318;margin-top:1mm">Foto tersedia '+paths.length+' dari kebutuhan '+need+'</div>':'');
+}
+await Promise.all([...document.images].map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=res})));
+status.textContent='Siap print · '+total+' foto'+(failed?' · '+failed+' gagal':'')+(shortage?' · '+shortage+' baris foto kurang':'');
+printBtn.disabled=false;
+})();
+</script></body></html>
