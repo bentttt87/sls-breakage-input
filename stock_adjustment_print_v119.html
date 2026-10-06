@@ -53,7 +53,7 @@ const photoRows=[];
    photoRows.push({
      incidentIndex,photoIndex:p,path:paths[p]||'',cellId,
      html:'<tr data-incident="'+incidentIndex+'" data-photo="'+p+'">'+
-       '<td>'+photoRows.length+'</td>'+
+       '<td>'+(photoRows.length+1)+'</td>'+
        '<td>'+esc(x.occurrence_date)+'</td>'+
        '<td class="left">'+esc(x.no_ba||'—')+'</td>'+
        '<td class="left">'+esc(x.item_code||'—')+'</td>'+
