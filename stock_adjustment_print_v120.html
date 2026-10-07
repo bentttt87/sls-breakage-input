@@ -45,7 +45,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th
   <button class="close" onclick="window.close()">Tutup</button>
   <button id="printBtn" class="print" disabled onclick="window.print()">🖨 Print / Save PDF</button>
 </div>
-<div class="note">Lampiran mengikuti format kerja: 1 foto = 1 baris. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai data final tanpa dropdown.</div>
+<div class="note">Lampiran mengikuti pilihan pada form sebelum cetak. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai teks final tanpa dropdown.</div>
 <main id="app"></main>
 <script>
 (async function(){
@@ -73,6 +73,7 @@ const mainRows=rows.map((r,i)=>'<tr>'+(i===0?'<td rowspan="4">1.</td>':'')+'<td>
 const totalRows='<tr class="total-row"><td colspan="3" rowspan="2" class="total-label">Total</td><td>BOX</td><td>0</td><td>'+fmt(d.total_box)+'</td><td rowspan="2"></td></tr><tr class="total-row"><td>PCS</td><td>0</td><td>'+fmt(d.total_pcs)+'</td></tr>';
 const sg=d.signatory||{},sig=[['Manager Distribusi','Mei Hoa'],['Manager Accounting','Irawati'],['Spv. Inventory Control',sg.spv||''],['Senior Staff. Ware',sg.senior||'']];
 
+const reportSettings=d.report_settings||{};
 const photoRows=[];
 (d.incidents||[]).forEach((x,incidentIndex)=>{
  const qty=Math.max(0,Number(x.qty_box||0)),need=Math.max(1,Math.min(5,Math.ceil(qty||1)));
@@ -81,10 +82,11 @@ const photoRows=[];
  for(let p=0;p<count;p++){
    photoRows.push({
      incidentIndex,photoIndex:p,path:paths[p]||'',blob:null,
-     no_ba:x.no_ba||'',status_default:String(x.incident_type||'').toLowerCase()==='warehouse'?'Pecah Gudang':'Pecah Kirim',
+     no_ba:x.no_ba||'',
+     status_default:reportSettings.status_product_override||(String(x.incident_type||'').toLowerCase()==='warehouse'?'Pecah Gudang':'Pecah Kirim'),
      item_code:x.item_code||'',series:x.ceramic_series||'',
-     factory_default:deriveFactory(x.ceramic_series)||x.factory||'',
-     motif_type:x.motif_type||'Motif Standard',
+     factory_default:reportSettings.factory_override||deriveFactory(x.ceramic_series)||x.factory||'',
+     motif_type:reportSettings.motif_type_override||x.motif_type||'Motif Standard',
      remark:x.cause_detail||''
    });
  }
