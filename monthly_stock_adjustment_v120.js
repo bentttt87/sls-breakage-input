@@ -71,7 +71,9 @@
               <div class="adj-field"><label>Plant</label><input id="monthlyAdjPlant119"></div>
               <div class="adj-field"><label>Nomor Stock Adjustment</label><input id="monthlyAdjNo119"></div>
               <div class="adj-field"><label>Status Retur ke Pabrik</label><select id="monthlyAdjReturn119"><option value="">Tidak dicantumkan</option><option value="SRKI">Sudah dikembalikan ke SRKI</option><option value="RCI">Sudah dikembalikan ke RCI</option><option value="SRKI & RCI">Sudah dikembalikan ke SRKI & RCI</option></select></div>
-              <div class="adj-field"><label>Motif / Keterangan Standar</label><input id="monthlyAdjMotif119" value="Motif Standard"></div>
+              <div class="adj-field"><label>Motif / Keterangan Standar</label><select id="monthlyAdjMotif119"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
+              <div class="adj-field"><label>Status Produk</label><select id="monthlyAdjStatusProduct120"><option value="">Otomatis sesuai data</option><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></div>
+              <div class="adj-field"><label>Pabrik Asal</label><select id="monthlyAdjFactory120"><option value="">Otomatis dari Series (S/R)</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></div>
               <div class="adj-field"><label>Nama SPV / Inventory Control *</label><input id="monthlyAdjSpv120" placeholder="Sesuai branch"></div>
               <div class="adj-field"><label>Nama Senior Staff Warehouse</label><input id="monthlyAdjSenior119" placeholder="Sesuai branch"></div>
               <div class="adj-field adj-span2"><label>Keterangan Tambahan</label><textarea id="monthlyAdjExtra119" placeholder="Opsional"></textarea></div>
@@ -99,7 +101,8 @@
     const p=currentReportMonth(),sg=savedSignatory();
     $('monthlyAdjPeriod119').value=p;$('monthlyAdjDate119').value=new Date().toISOString().slice(0,10);
     $('monthlyAdjPlant119').value='RDC '+(RDC_CODE[rdc()]||up(rdc()).slice(0,3));
-    $('monthlyAdjReturn119').value='';$('monthlyAdjExtra119').value='';
+    $('monthlyAdjReturn119').value='';$('monthlyAdjMotif119').value='Motif Standard';
+    $('monthlyAdjStatusProduct120').value='';$('monthlyAdjFactory120').value='';$('monthlyAdjExtra119').value='';
     $('monthlyAdjSpv120').value=sg.spv||'';$('monthlyAdjSenior119').value=sg.senior||'';
     $('monthlyAdjMsg119').textContent='';syncPeriod();
     const modal=$('monthlyAdjModal119');modal.classList.add('show');modal.setAttribute('aria-hidden','false');
@@ -115,6 +118,9 @@
   async function buildReport(){
     const msg=$('monthlyAdjMsg119'),btn=$('monthlyAdjPrint119'),p=$('monthlyAdjPeriod119').value,docDate=$('monthlyAdjDate119').value;
     const spv=$('monthlyAdjSpv120').value.trim(),senior=$('monthlyAdjSenior119').value.trim();
+    const statusProductOverride=$('monthlyAdjStatusProduct120').value;
+    const factoryOverride=$('monthlyAdjFactory120').value;
+    const motifTypeOverride=$('monthlyAdjMotif119').value||'Motif Standard';
     if(!/^\d{4}-\d{2}$/.test(p)||!docDate||!spv){msg.className='small adj-err119';msg.textContent='Bulan laporan, tanggal dokumen, dan nama SPV wajib diisi.';return}
     btn.disabled=true;msg.className='small';msg.textContent='Mengambil data cut-off dan foto evidence…';
     try{
@@ -136,6 +142,7 @@
         version:'v120',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
         rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},approved_incident_count:approved.length,
+        report_settings:{status_product_override:statusProductOverride,factory_override:factoryOverride,motif_type_override:motifTypeOverride},
         incidents:approved.map(x=>({
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
