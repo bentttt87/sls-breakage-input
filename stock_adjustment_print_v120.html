@@ -23,7 +23,6 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th
 .appendix h2{font-size:15px;margin:0 0 1.5mm}.appendix .sub{font-size:9px;color:#555;margin-bottom:4mm}
 .appendix table{font-size:8px}.appendix th,.appendix td{padding:2.2px 3px}.appendix tr{break-inside:avoid;page-break-inside:avoid}.appendix td{text-align:center}.appendix td.left{text-align:left}
 .c-no{width:8mm}.c-ba{width:31mm}.c-status{width:27mm}.c-motif{width:31mm}.c-seri{width:23mm}.c-factory{width:27mm}.c-type{width:30mm}.c-remark{width:63mm}.c-photo{width:47mm}
-.print-select{width:100%;border:1px solid #b7c6d6;border-radius:4px;background:#fff;padding:3px 4px;font:inherit}
 .remark-cell{text-align:left!important;white-space:pre-wrap;line-height:1.25}.photo-cell{padding:1.5mm!important}
 .photo-wrap{display:flex;flex-direction:column;gap:1mm;align-items:center}.photo-wrap img{width:100%;height:31mm;object-fit:contain;border:1px solid #bbb;background:#f7f7f7}.photo-cap{font-size:6.3px;color:#555}
 .photo-missing{font-size:7px;color:#b42318;border:1px dashed #d7a5a0;padding:3mm 1mm;width:100%}
@@ -32,8 +31,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th
 @media print{
  body{background:#fff}.toolbar,.note{display:none!important}.sheet,.appendix{margin:0;box-shadow:none}
  .sheet{width:210mm;min-height:297mm;page-break-after:always}.appendix{width:297mm;min-height:210mm}
- .print-select{appearance:none;-webkit-appearance:none;border:0;padding:0;background:transparent}
- .edit{outline:none!important;background:transparent!important}
+  .edit{outline:none!important;background:transparent!important}
 }
 @media(max-width:900px){.sheet{width:100%;min-height:auto;margin:0;padding:12px;box-shadow:none}.appendix{width:100%;min-height:auto;margin:0;padding:12px;box-shadow:none;overflow-x:auto}.head{grid-template-columns:1fr}.title,.meta{text-align:left;padding-top:2mm}.appendix table{min-width:1050px}}
 </style>
@@ -47,7 +45,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th
   <button class="close" onclick="window.close()">Tutup</button>
   <button id="printBtn" class="print" disabled onclick="window.print()">🖨 Print / Save PDF</button>
 </div>
-<div class="note">Lampiran mengikuti format kerja: 1 foto = 1 baris. Dropdown pada tabel dapat disesuaikan sebelum print/download Excel.</div>
+<div class="note">Lampiran mengikuti format kerja: 1 foto = 1 baris. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai data final tanpa dropdown.</div>
 <main id="app"></main>
 <script>
 (async function(){
@@ -93,15 +91,15 @@ const photoRows=[];
 });
 
 const detailRows=photoRows.map((r,i)=>{
- const sid='statusSel'+i,fid='factorySel'+i,mid='motifSel'+i,cid='photoCell'+i;
+ const cid='photoCell'+i;
  return '<tr>'+
   '<td>'+(i+1)+'</td>'+
   '<td class="left">'+esc(r.no_ba||'—')+'</td>'+
-  '<td><select id="'+sid+'" class="print-select"><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></td>'+
+  '<td>'+esc(r.status_default)+'</td>'+
   '<td class="left">'+esc(r.item_code||'—')+'</td>'+
   '<td class="left">'+esc(r.series||'—')+'</td>'+
-  '<td><select id="'+fid+'" class="print-select"><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></td>'+
-  '<td><select id="'+mid+'" class="print-select"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></td>'+
+  '<td>'+esc(r.factory_default||'—')+'</td>'+
+  '<td>'+esc(r.motif_type||'Motif Standard')+'</td>'+
   '<td class="remark-cell">'+esc(r.remark||'')+'</td>'+
   '<td class="photo-cell" id="'+cid+'"><span style="color:#777">Memuat foto…</span></td>'+
  '</tr>';
@@ -115,12 +113,7 @@ document.getElementById('app').innerHTML=
 '<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
 '<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Cut-off '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · 1 foto = 1 baris.</div>'+
 '<table id="appendixTable"><thead><tr><th class="c-no">No</th><th class="c-ba">No BA</th><th class="c-status">Status Produk</th><th class="c-motif">Motif</th><th class="c-seri">Seri</th><th class="c-factory">Pabrik Asal</th><th class="c-type">Motif Type</th><th class="c-remark">Remark</th><th class="c-photo">Foto</th></tr></thead><tbody>'+detailRows+'</tbody></table>'+
-'<div class="rule-note"><b>Penyesuaian:</b> kolom Tanggal, Qty, Size, dan Pabrik lama dihapus. Pabrik Asal dan Status Produk dapat dipilih saat cetak. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
-
-photoRows.forEach((r,i)=>{
- const s=document.getElementById('statusSel'+i),f=document.getElementById('factorySel'+i),m=document.getElementById('motifSel'+i);
- if(s)s.value=r.status_default;if(f&&['SRKI','RCI'].includes(r.factory_default))f.value=r.factory_default;if(m)m.value=r.motif_type;
-});
+'<div class="rule-note"><b>Penyesuaian:</b> kolom Tanggal, Qty, Size, dan Pabrik lama dihapus. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai data final tanpa dropdown. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
 
 let total=0,failed=0;
 for(let i=0;i<photoRows.length;i++){
@@ -156,13 +149,10 @@ excelBtn.onclick=async()=>{
    const hr=ws.addRow(headers);hr.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17365D'}};c.alignment={horizontal:'center',vertical:'middle'};c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}});
    ws.columns=[{width:6},{width:24},{width:17},{width:22},{width:16},{width:16},{width:18},{width:42},{width:24}];
    for(let i=0;i<photoRows.length;i++){
-     const pr=photoRows[i],statusVal=document.getElementById('statusSel'+i)?.value||pr.status_default,factoryVal=document.getElementById('factorySel'+i)?.value||pr.factory_default,motifVal=document.getElementById('motifSel'+i)?.value||pr.motif_type;
+     const pr=photoRows[i],statusVal=pr.status_default,factoryVal=pr.factory_default,motifVal=pr.motif_type;
      const er=ws.addRow([i+1,pr.no_ba,statusVal,pr.item_code,pr.series,factoryVal,motifVal,pr.remark,'']);
      er.height=78;er.eachCell(c=>{c.alignment={vertical:'middle',wrapText:true};c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}});
      er.getCell(1).alignment={horizontal:'center',vertical:'middle'};er.getCell(3).alignment={horizontal:'center',vertical:'middle'};er.getCell(6).alignment={horizontal:'center',vertical:'middle'};er.getCell(7).alignment={horizontal:'center',vertical:'middle'};
-     er.getCell(3).dataValidation={type:'list',allowBlank:false,formulae:['"Pecah Kirim,Pecah Gudang"']};
-     er.getCell(6).dataValidation={type:'list',allowBlank:false,formulae:['"SRKI,RCI"']};
-     er.getCell(7).dataValidation={type:'list',allowBlank:false,formulae:['"Motif Standard,Motif TP"']};
      if(pr.blob){
        const dataUrl=await blobToDataUrl(pr.blob),ext=(pr.blob.type||'').includes('png')?'png':'jpeg',imgId=wb.addImage({base64:dataUrl,extension:ext});
        ws.addImage(imgId,{tl:{col:8.05,row:er.number-1+0.08},ext:{width:150,height:92},editAs:'oneCell'});
