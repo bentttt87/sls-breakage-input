@@ -71,7 +71,7 @@
               <div class="adj-field"><label>Plant</label><input id="monthlyAdjPlant119"></div>
               <div class="adj-field"><label>Nomor Stock Adjustment</label><input id="monthlyAdjNo119"></div>
               <div class="adj-field"><label>Status Retur ke Pabrik</label><select id="monthlyAdjReturn119"><option value="">Tidak dicantumkan</option><option value="SRKI">Sudah dikembalikan ke SRKI</option><option value="RCI">Sudah dikembalikan ke RCI</option><option value="SRKI & RCI">Sudah dikembalikan ke SRKI & RCI</option></select></div>
-              <div class="adj-field"><label>Motif / Keterangan Standar</label><select id="monthlyAdjMotif119"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
+              <div class="adj-field"><label>Filter Motif Type</label><select id="monthlyAdjMotif119"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
               <div class="adj-field"><label>Status Produk</label><select id="monthlyAdjStatusProduct120"><option value="">Otomatis sesuai data</option><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></div>
               <div class="adj-field"><label>Pabrik Asal</label><select id="monthlyAdjFactory120"><option value="">Otomatis dari Series (S/R)</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></div>
               <div class="adj-field"><label>Nama SPV / Inventory Control *</label><input id="monthlyAdjSpv120" placeholder="Sesuai branch"></div>
@@ -87,7 +87,7 @@
       $('monthlyAdjClose119').onclick=closeModal;$('monthlyAdjCancel119').onclick=closeModal;$('monthlyAdjPrint119').onclick=buildReport;
       $('monthlyAdjPeriod119').onchange=syncPeriod;
     }
-    const badge=$('buildBadge');if(badge)badge.textContent='v120';
+    const badge=$('buildBadge');if(badge)badge.textContent='v124';
   }
 
   function syncPeriod(){
@@ -133,8 +133,11 @@
         const id=String(x.incident_id);if(seen.has(id))return false;seen.add(id);
         const dt=String(x.occurrence_date||'');return dt>=range.start&&dt<=range.end;
       });
-      const approved=all.filter(x=>PRINTABLE_STATUS.has(up(x.status))).sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||Number(x.incident_id)-Number(y.incident_id));
-      if(!approved.length)throw new Error('Belum ada incident terverifikasi pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
+      const approvedAll=all.filter(x=>PRINTABLE_STATUS.has(up(x.status)));
+      const approved=approvedAll
+        .filter(x=>String(x.motif_type||'Motif Standard').trim()===motifTypeOverride)
+        .sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||Number(x.incident_id)-Number(y.incident_id));
+      if(!approved.length)throw new Error('Tidak ada incident terverifikasi dengan Motif Type "'+motifTypeOverride+'" pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
       const rows=groupRows(approved),box=rows.filter(x=>x.uom==='BOX').reduce((s,x)=>s+Number(x.out_qty||0),0),pcs=rows.filter(x=>x.uom==='PCS').reduce((s,x)=>s+Number(x.out_qty||0),0);
       const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode '+monthLabel(p),'Cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end),$('monthlyAdjMotif119').value.trim()||'Motif Standard',$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
       saveSignatory({spv,senior});
@@ -151,7 +154,7 @@
         }))
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
-      msg.className='small adj-ok';msg.textContent='Rekap siap: '+approved.length+' item. Membuka lampiran dengan foto…';
+      msg.className='small adj-ok';msg.textContent='Rekap siap: '+approved.length+' item '+motifTypeOverride+'. Membuka lampiran dengan foto…';
       const w=window.open('/stock_adjustment_print_v120.html?v=preprint-dropdowns-20261007&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
