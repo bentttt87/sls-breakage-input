@@ -155,7 +155,7 @@
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
       msg.className='small adj-ok';msg.textContent='Rekap siap: '+approved.length+' item '+motifTypeOverride+'. Membuka lampiran dengan foto…';
-      const w=window.open('/stock_adjustment_print_v120.html?v=preprint-dropdowns-20261007&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
+      const w=window.open('/stock_adjustment_print_v120.html?v=20261020-v124&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
   }
