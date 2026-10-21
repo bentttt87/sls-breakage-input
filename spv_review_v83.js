@@ -148,7 +148,7 @@
   renderHistory=function(){
     const result=baseRenderHistory.apply(this,arguments);
     const trs=[...($v('historyBody')?.querySelectorAll('tr')||[])];
-    rows().slice(0,60).forEach((r,i)=>{
+    rows().forEach((r,i)=>{
       if(!trs[i]||String(r.incident_type||'').toLowerCase()!=='delivery')return;
       const td=trs[i].lastElementChild;if(!td||td.querySelector('[data-spv-print-v83]'))return;
       const b=document.createElement('button');b.className='mini';b.dataset.spvPrintV83='1';b.textContent='🖨 Print BA';b.onclick=()=>printGroup(r);td.appendChild(b);
