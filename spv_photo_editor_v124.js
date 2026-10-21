@@ -199,54 +199,120 @@
     if(!res.ok)throw new Error('Upload foto edit gagal: '+cleanErr(await res.text()));
     return path;
   }
+  async function annotationMap(row){
+    const list=await rpc('breakage_photo_annotation_list_v128',{p_incident_id:Number(row.incident_id)})||[];
+    const map=new Map();
+    (Array.isArray(list)?list:[]).forEach(x=>map.set(Number(x.photo_index),x));
+    return map;
+  }
+
   async function saveEditedPhoto(){
     if(!E.row||E.index<0)return;
-    const btn=$v('spvPhotoEditSave124');btn.disabled=true;$v('spvPhotoEditMsg124').textContent='Menyimpan foto hasil edit…';
-    const id=Number(E.row.incident_id);
+    const btn=$v('spvPhotoEditSave124');
+    btn.disabled=true;
+    $v('spvPhotoEditMsg124').textContent='Menyimpan foto hasil edit…';
     try{
       if(E.cropRect&&E.cropBase){restoreFrom(E.cropBase);E.cropRect=null;E.cropBase=null;}
-      const blob=await canvasBlob(),newPath=await uploadEdited(blob,E.row,E.index),paths=(Array.isArray(E.row.photo_paths)?[...E.row.photo_paths]:[]);
-      paths[E.index]=newPath;
+      const blob=await canvasBlob();
+      const newPath=await uploadEdited(blob,E.row,E.index);
       const reason=String($v('reviewNote')?.value||'').trim()||'Edit/annotasi foto oleh SPV untuk penandaan area pecah Accounting';
-      await rpc('breakage_incident_spv_photo_update_v124',{p_incident_id:id,p_photo_paths:paths,p_action:'EDIT',p_reason:reason});
-      closeEditor();await loadHistory();await window.viewIncident(id);
-    }catch(e){$v('spvPhotoEditMsg124').textContent='Gagal: '+cleanErr(e?.message||e)}
-    finally{btn.disabled=false}
+      await rpc('breakage_photo_annotation_set_v128',{
+        p_incident_id:Number(E.row.incident_id),
+        p_photo_index:Number(E.index),
+        p_active_path:newPath,
+        p_action:'EDIT',
+        p_reason:reason
+      });
+      const id=Number(E.row.incident_id);
+      closeEditor();
+      await window.viewIncident(id);
+      const m=$v('reviewMsg');
+      if(m)m.textContent='Foto evidence berhasil diperbarui. Data transaksi dan periode CLOSED tidak berubah.';
+    }catch(e){
+      $v('spvPhotoEditMsg124').textContent='Gagal: '+cleanErr(e?.message||e);
+    }finally{
+      btn.disabled=false;
+    }
   }
+
   async function deletePhoto(row,index){
     if(!isSpv())return;
-    const paths=Array.isArray(row.photo_paths)?[...row.photo_paths]:[];
-    if(paths.length<=1){alert('Minimal 1 foto evidence wajib tersisa. Foto terakhir tidak dapat dihapus.');return}
-    if(!confirm('Hapus Foto '+(index+1)+' dari incident ini? Foto original tetap tersimpan untuk audit trail.'))return;
-    const id=Number(row.incident_id);paths.splice(index,1);
-    const msg=$v('reviewMsg');if(msg)msg.textContent='Menghapus foto dari incident…';
+    if(!confirm('Hapus Foto '+(index+1)+' dari evidence aktif? Foto original tetap tersimpan untuk audit trail.'))return;
+    const msg=$v('reviewMsg');if(msg)msg.textContent='Menghapus foto dari evidence aktif…';
     try{
       const reason=String($v('reviewNote')?.value||'').trim()||'Hapus foto evidence oleh SPV untuk koreksi lampiran Accounting';
-      await rpc('breakage_incident_spv_photo_update_v124',{p_incident_id:id,p_photo_paths:paths,p_action:'DELETE',p_reason:reason});
-      await loadHistory();await window.viewIncident(id);
-    }catch(e){if(msg)msg.textContent='Hapus foto gagal: '+cleanErr(e?.message||e)}
+      await rpc('breakage_photo_annotation_set_v128',{
+        p_incident_id:Number(row.incident_id),
+        p_photo_index:Number(index),
+        p_active_path:null,
+        p_action:'DELETE',
+        p_reason:reason
+      });
+      await window.viewIncident(Number(row.incident_id));
+      if(msg)msg.textContent='Foto disembunyikan dari evidence aktif. Foto original tetap tersimpan untuk audit.';
+    }catch(e){
+      if(msg)msg.textContent='Hapus foto gagal: '+cleanErr(e?.message||e);
+    }
   }
 
   function canEditPhoto(row){
-    const st=up(row?.status);return isSpv()&&['DRAFT','WAITING_SPV','RETURNED_ADMIN','APPROVED_SPV'].includes(st);
+    const st=up(row?.status);
+    return isSpv()&&['DRAFT','WAITING_SPV','RETURNED_ADMIN','APPROVED_SPV','MASTER_REVIEW','FINAL','CLOSED'].includes(st);
   }
-  function decorate(row){
+
+  async function decorate(row){
     const box=$v('reviewPhotos');if(!box||!row)return;
     box.classList.add('spv-photo-grid124');
-    if(!canEditPhoto(row))return;
     const paths=Array.isArray(row.photo_paths)?row.photo_paths.filter(Boolean):[];
     const items=[...box.children];
-    items.forEach((node,i)=>{
-      if(i>=paths.length||node.closest?.('.spv-photo-card124'))return;
-      const card=document.createElement('div');card.className='spv-photo-card124';
-      node.replaceWith(card);card.appendChild(node);
-      const actions=document.createElement('div');actions.className='spv-photo-actions124';
+    const map=await annotationMap(row);
+    let activeCount=0;
+
+    for(let i=0;i<items.length&&i<paths.length;i++){
+      const node=items[i];
+      const ann=map.get(i);
+      if(ann?.is_hidden===true){
+        node.style.display='none';
+        continue;
+      }
+
+      activeCount++;
+      const effectivePath=ann?.active_path||paths[i];
+
+      if(effectivePath&&effectivePath!==paths[i]){
+        try{
+          const blob=await blobForPath(effectivePath);
+          const url=URL.createObjectURL(blob);
+          if(typeof REVIEW_URLS!=='undefined')REVIEW_URLS.push(url);
+          const a=node.matches?.('a')?node:node.querySelector?.('a');
+          const img=node.matches?.('img')?node:node.querySelector?.('img');
+          if(a)a.href=url;
+          if(img){img.src=url;img.alt='Evidence edit SPV '+(i+1);}
+        }catch(e){console.warn('Gagal memuat evidence edit',e);}
+      }
+
+      if(!canEditPhoto(row)||node.closest?.('.spv-photo-card124'))continue;
+
+      const card=document.createElement('div');
+      card.className='spv-photo-card124';
+      node.replaceWith(card);
+      card.appendChild(node);
+
+      const actions=document.createElement('div');
+      actions.className='spv-photo-actions124';
       actions.innerHTML='<button type="button">✎ Edit Foto</button><button type="button" class="danger124">Hapus Foto</button>';
-      actions.children[0].onclick=()=>openEditor(row,i,paths[i]);
+      actions.children[0].onclick=()=>openEditor(row,i,effectivePath);
       actions.children[1].onclick=()=>deletePhoto(row,i);
       card.appendChild(actions);
-    });
-    const rule=$v('evidenceRule');if(rule)rule.insertAdjacentHTML('beforeend','<br><b>SPV Foto:</b> Edit untuk crop/penandaan Accounting; hapus diperbolehkan selama minimal 1 foto tersisa.');
+    }
+
+    const rule=$v('evidenceRule');
+    if(rule){
+      rule.innerHTML='✓ Evidence aktif: <b>'+activeCount+' foto</b>. Foto original tetap tersimpan untuk audit.';
+      if(canEditPhoto(row)){
+        rule.insertAdjacentHTML('beforeend','<br><b>SPV Foto:</b> edit/crop/penandaan dan hide foto tetap diperbolehkan pada periode CLOSED tanpa mengubah transaksi.');
+      }
+    }
   }
 
   ensureModal();
@@ -256,7 +322,7 @@
     const wrapped=async function(id){
       const result=await baseView.apply(this,arguments);
       const row=(Array.isArray(INCIDENTS)?INCIDENTS:[]).find(x=>Number(x.incident_id)===Number(id));
-      setTimeout(()=>decorate(row),0);
+      setTimeout(()=>{decorate(row).catch(e=>console.warn('decorate evidence',e));},0);
       return result;
     };
     window.viewIncident=wrapped;viewIncident=wrapped;
@@ -273,6 +339,6 @@
     window.correctionHtml=wrappedCorrection;correctionHtml=wrappedCorrection;
   }catch(_){}
 
-  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v124';},ms));
-  window.__SLS_SPV_PHOTO_EDITOR='v124';
+  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v128';},ms));
+  window.__SLS_SPV_PHOTO_EDITOR='v128';
 })();
