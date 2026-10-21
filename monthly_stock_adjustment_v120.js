@@ -125,10 +125,13 @@
     btn.disabled=true;msg.className='small';msg.textContent='Mengambil data cut-off dan foto evidence…';
     try{
       const prev=prevMonth(p),range=cutoffRange(p);
-      const [a,b]=await Promise.all([
+      const [a,b,mapPrev,mapCurr]=await Promise.all([
         rpc('breakage_incident_list',{p_period:prev,p_rdc:rdc()}),
-        rpc('breakage_incident_list',{p_period:p,p_rdc:rdc()})
+        rpc('breakage_incident_list',{p_period:p,p_rdc:rdc()}),
+        rpc('breakage_photo_effective_map_v128',{p_period:prev,p_rdc:rdc()}),
+        rpc('breakage_photo_effective_map_v128',{p_period:p,p_rdc:rdc()})
       ]);
+      const effectiveMap={...(mapPrev||{}),...(mapCurr||{})};
       const seen=new Set(),all=[...(a||[]),...(b||[])].filter(x=>{
         const id=String(x.incident_id);if(seen.has(id))return false;seen.add(id);
         const dt=String(x.occurrence_date||'');return dt>=range.start&&dt<=range.end;
@@ -150,7 +153,7 @@
       const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode '+monthLabel(p),'Cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end),$('monthlyAdjMotif119').value.trim()||'Motif Standard',$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
       saveSignatory({spv,senior});
       const payload={
-        version:'v126',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
+        version:'v128',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
         rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},
         incident_count:selected.length,verified_incident_count:verified.length,pending_incident_count:pending.length,
@@ -159,12 +162,12 @@
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
           qty_box:Number(x.qty_box||0),uom:x.uom||'BOX',no_ba:x.no_ba,factory:x.factory,status:x.status,cause:x.cause,cause_detail:x.cause_detail,
-          motif_type:x.motif_type||'Motif Standard',photo_paths:Array.isArray(x.photo_paths)?x.photo_paths:[]
+          motif_type:x.motif_type||'Motif Standard',photo_paths:Array.isArray(effectiveMap[String(x.incident_id)])?effectiveMap[String(x.incident_id)]:(Array.isArray(x.photo_paths)?x.photo_paths:[])
         }))
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
       msg.className='small adj-ok';msg.textContent='Rekap siap: '+selected.length+' item '+motifTypeOverride+' · '+sourceBA.size+' BA'+(pending.length?' · '+pending.length+' item belum Approved SPV':'')+'. Membuka lampiran dengan foto…';
-      const w=window.open('/stock_adjustment_print_v120.html?v=20261021-v126&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
+      const w=window.open('/stock_adjustment_print_v120.html?v=20261021-v128&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
   }
