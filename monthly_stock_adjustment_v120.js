@@ -133,20 +133,29 @@
         const id=String(x.incident_id);if(seen.has(id))return false;seen.add(id);
         const dt=String(x.occurrence_date||'');return dt>=range.start&&dt<=range.end;
       });
-      const approvedAll=all.filter(x=>PRINTABLE_STATUS.has(up(x.status)));
-      const approved=approvedAll
+      const selected=all
         .filter(x=>String(x.motif_type||'Motif Standard').trim()===motifTypeOverride)
-        .sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||Number(x.incident_id)-Number(y.incident_id));
-      if(!approved.length)throw new Error('Tidak ada incident terverifikasi dengan Motif Type "'+motifTypeOverride+'" pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
-      const rows=groupRows(approved),box=rows.filter(x=>x.uom==='BOX').reduce((s,x)=>s+Number(x.out_qty||0),0),pcs=rows.filter(x=>x.uom==='PCS').reduce((s,x)=>s+Number(x.out_qty||0),0);
+        .sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||String(x.no_ba||'').localeCompare(String(y.no_ba||''))||Number(x.incident_id)-Number(y.incident_id));
+      if(!selected.length)throw new Error('Tidak ada data dengan Motif Type "'+motifTypeOverride+'" pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
+
+      const verified=selected.filter(x=>PRINTABLE_STATUS.has(up(x.status)));
+      const pending=selected.filter(x=>!PRINTABLE_STATUS.has(up(x.status)));
+
+      // BA completeness guard: Stock Adjustment must never silently drop a BA.
+      const sourceBA=new Set(selected.map(x=>String(x.no_ba||'').trim()).filter(Boolean));
+      const reportBA=new Set(selected.map(x=>String(x.no_ba||'').trim()).filter(Boolean));
+      if(sourceBA.size!==reportBA.size)throw new Error('Validasi BA gagal: ada BA sumber yang tidak masuk ke lampiran.');
+
+      const rows=groupRows(selected),box=rows.filter(x=>x.uom==='BOX').reduce((s,x)=>s+Number(x.out_qty||0),0),pcs=rows.filter(x=>x.uom==='PCS').reduce((s,x)=>s+Number(x.out_qty||0),0);
       const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode '+monthLabel(p),'Cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end),$('monthlyAdjMotif119').value.trim()||'Motif Standard',$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
       saveSignatory({spv,senior});
       const payload={
-        version:'v124',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
+        version:'v126',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
-        rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},approved_incident_count:approved.length,
+        rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},
+        incident_count:selected.length,verified_incident_count:verified.length,pending_incident_count:pending.length,
         report_settings:{status_product_override:statusProductOverride,factory_override:factoryOverride,motif_type_override:motifTypeOverride},
-        incidents:approved.map(x=>({
+        incidents:selected.map(x=>({
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
           qty_box:Number(x.qty_box||0),uom:x.uom||'BOX',no_ba:x.no_ba,factory:x.factory,status:x.status,cause:x.cause,cause_detail:x.cause_detail,
@@ -154,8 +163,8 @@
         }))
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
-      msg.className='small adj-ok';msg.textContent='Rekap siap: '+approved.length+' item '+motifTypeOverride+'. Membuka lampiran dengan foto…';
-      const w=window.open('/stock_adjustment_print_v120.html?v=20261020-v124&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
+      msg.className='small adj-ok';msg.textContent='Rekap siap: '+selected.length+' item '+motifTypeOverride+' · '+sourceBA.size+' BA'+(pending.length?' · '+pending.length+' item belum Approved SPV':'')+'. Membuka lampiran dengan foto…';
+      const w=window.open('/stock_adjustment_print_v120.html?v=20261021-v126&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
   }
