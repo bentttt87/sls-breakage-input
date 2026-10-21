@@ -87,7 +87,7 @@
     if(!isSpv())return;
     const body=$('historyBody'); if(!body)return;
     const trs=[...body.querySelectorAll('tr')];
-    let rows=[];try{rows=(Array.isArray(INCIDENTS)?INCIDENTS:[]).slice(0,60)}catch(_){}
+    let rows=[];try{rows=(Array.isArray(INCIDENTS)?INCIDENTS:[])}catch(_){}
     rows.forEach((r,i)=>{
       const tr=trs[i],td=tr?.lastElementChild;if(!td||td.querySelector('[data-motif-v120]'))return;
       const wrap=document.createElement('div');
