@@ -18,6 +18,8 @@
   let urls = [];
   let busy = false;
   let editId = null;
+  let openSeq = 0;
+  let closeTimer = null;
 
   function uid(){ return ACCESS?.username || sessionStorage.getItem('sls_breakage_input_username') || ''; }
   function rdc(){ return ACCESS?.rdc_name || SCOPE || ''; }
@@ -90,6 +92,20 @@
     bind();
   }
 
+  function resetRevisionUi(){
+    if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+    urls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(_){} });urls=[];
+    photos=[];editId=null;
+    const ids=['v111Date','v111Item','v111Series','v111Qty','v111Reported','v111Sj','v111Customer','v111Receiver','v111Witness','v111Related','v111Detail'];
+    ids.forEach(id=>{const el=$(id);if(el)el.value='';});
+    if($('v111Ba'))$('v111Ba').value='AUTO / SETELAH SIMPAN';
+    if($('v111Vendor'))$('v111Vendor').value='';
+    if($('v111Driver'))$('v111Driver').innerHTML='<option value="">Pilih Vendor dahulu</option>';
+    state={type:'warehouse',kind:'',size:'',factory:'',cause:'Packaging / Pallet',wh:'Pecah Dalam Pallet'};
+    clearMsg();
+    renderPhotos();
+  }
+
   function msg(text,type='err'){const m=$('v111Msg');m.className=`v111-msg show ${type}`;m.textContent=text;m.scrollIntoView({behavior:'smooth',block:'nearest'});}
   function clearMsg(){const m=$('v111Msg');m.className='v111-msg';m.textContent='';}
   function active(sel,attr,val){document.querySelectorAll(sel).forEach(b=>b.classList.toggle('active',String(b.getAttribute(attr))===String(val)));}
@@ -159,10 +175,121 @@
     const sw=src.width||src.naturalWidth, sh=src.height||src.naturalHeight;if(!sw||!sh)throw new Error('Ukuran foto tidak valid.');const scale=Math.min(1,960/Math.max(sw,sh)),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(src,0,0,w,h);if(src.close)src.close();return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Kompresi foto gagal')),'image/jpeg',.65));
   }
   async function upload(){await refreshAuth();const paths=[],safe=String(rdc()).replace(/[^A-Za-z0-9_-]/g,'_'),batch='draft_'+(crypto.randomUUID?crypto.randomUUID():Date.now());for(let i=0;i<photos.length;i++){msg(`Mengunggah foto ${i+1} dari ${photos.length}…`,'wait');const source=photos[i];const blob=(String(source.type||'').toLowerCase()==='image/jpeg'&&source.size<=700*1024)?source:await jpeg(source),path=`${safe}/${batch}/${Date.now()}_${i+1}.jpg`,encoded=path.split('/').map(encodeURIComponent).join('/');const r=await fetch(`${SUPABASE_URL}/storage/v1/object/breakage-evidence/${encoded}`,{method:'POST',headers:{apikey:PUBLIC_ANON,Authorization:`Bearer ${auth()}`,'Content-Type':'image/jpeg','x-upsert':'false'},body:blob});if(!r.ok)throw new Error('Upload foto gagal: '+cleanErr(await r.text()));paths.push(path);}return paths;}
-  async function submit(){if(busy)return;const missing=validate();if(missing.length){msg('Lengkapi: '+missing.join(', '));return;}busy=true;$('v111Submit').disabled=true;try{const d=data();msg('Menyiapkan foto…','wait');const photo_paths=await upload();const driver=$('v111Driver'),plate=driver.selectedOptions?.[0]?.dataset?.plate||'';const payload={incident_type:d.type,occurrence_date:d.date,item_code:d.item,ceramic_series:d.series,product_kind:d.kind,product_type:d.kind,product_size:d.size,qty_box:Number(d.qty),uom:'BOX',rdc_name:rdc(),reported_by:d.reported,factory:d.factory,cause:d.cause,cause_detail:d.detail,photo_paths};if(d.type==='delivery')Object.assign(payload,{no_sj:d.sj,customer:d.customer,ba_receiver_name:d.receiver,transporter:d.vendor,driver_name:d.driver,vehicle_no:up(plate),ba_witness_name:d.witness});else Object.assign(payload,{warehouse_event:state.wh,related_person:d.related});msg('Menyimpan Draft ke sistem…','wait');const fn=editId?'breakage_incident_update_draft_v94':'breakage_incident_create_v94';const params=editId?{p_incident_id:editId,p_payload:payload}:{p_payload:payload};const res=await rpc111(fn,params);msg(`Berhasil. ${res?.incident_no||res?.no_ba||'Draft'} tersimpan dan menunggu review SPV.`,'ok');try{localStorage.removeItem(key())}catch(_){}photos=[];renderPhotos();if(typeof loadHistory==='function'){try{PERIOD=d.date.slice(0,7);if(typeof initPeriods==='function')initPeriods();await loadHistory();}catch(_){}}setTimeout(close,1200);}catch(e){console.error('v111 submit',e);msg('Gagal simpan: '+cleanErr(e?.message||e));}finally{busy=false;$('v111Submit').disabled=false;}}
+  async function submit(){if(busy)return;const missing=validate();if(missing.length){msg('Lengkapi: '+missing.join(', '));return;}busy=true;$('v111Submit').disabled=true;try{const d=data();msg('Menyiapkan foto…','wait');const photo_paths=await upload();const driver=$('v111Driver'),plate=driver.selectedOptions?.[0]?.dataset?.plate||'';const payload={incident_type:d.type,occurrence_date:d.date,item_code:d.item,ceramic_series:d.series,product_kind:d.kind,product_type:d.kind,product_size:d.size,qty_box:Number(d.qty),uom:'BOX',rdc_name:rdc(),reported_by:d.reported,factory:d.factory,cause:d.cause,cause_detail:d.detail,photo_paths};if(d.type==='delivery')Object.assign(payload,{no_sj:d.sj,customer:d.customer,ba_receiver_name:d.receiver,transporter:d.vendor,driver_name:d.driver,vehicle_no:up(plate),ba_witness_name:d.witness});else Object.assign(payload,{warehouse_event:state.wh,related_person:d.related});msg('Menyimpan Draft ke sistem…','wait');const fn=editId?'breakage_incident_update_draft_v94':'breakage_incident_create_v94';const params=editId?{p_incident_id:editId,p_payload:payload}:{p_payload:payload};const res=await rpc111(fn,params);msg(`Berhasil. ${res?.incident_no||res?.no_ba||'Draft'} tersimpan dan menunggu review SPV.`,'ok');try{localStorage.removeItem(key())}catch(_){}photos=[];renderPhotos();if(typeof loadHistory==='function'){try{PERIOD=d.date.slice(0,7);if(typeof initPeriods==='function')initPeriods();await loadHistory();}catch(_){}}editId=null;close(true);}catch(e){console.error('v111 submit',e);msg('Gagal simpan: '+cleanErr(e?.message||e));}finally{busy=false;$('v111Submit').disabled=false;}}
 
-  async function open(seed=null){if(!canInput()){alert('Akun ini tidak memiliki hak input breakage.');return;}build();clearMsg();photos=[];renderPhotos();editId=seed?.incident_id||null;const title=document.querySelector('#v111 .head h2');if(title)title.textContent=editId?'Revisi Breakage':'Input Breakage';if($('v111Ba'))$('v111Ba').value=seed?.no_ba||'AUTO / SETELAH SIMPAN';state={type:seed?.incident_type||'warehouse',kind:up(seed?.product_kind||seed?.product_type||''),size:String(seed?.product_size||''),factory:up(seed?.factory||''),cause:seed?.cause||'Packaging / Pallet',wh:seed?.warehouse_event||'Pecah Dalam Pallet'};$('v111Rdc').value=seed?.rdc||rdc();$('v111User').value=uid();$('v111Who').textContent=`${up(ACCESS?.breakage_role||ACCESS?.role||'OPERATOR')} · ${rdc()}`;$('v111Date').value=seed?.occurrence_date||new Date().toISOString().slice(0,10);$('v111Item').value=seed?.item_code||'';$('v111Series').value=seed?.ceramic_series||'';$('v111Qty').value=seed?.qty_box||1;$('v111Reported').value=seed?.reported_by||up(uid());$('v111Sj').value=seed?.no_sj||'';$('v111Customer').value=seed?.customer||'';$('v111Receiver').value=seed?.ba_receiver_name||'';$('v111Witness').value=seed?.ba_witness_name||'';$('v111Related').value=seed?.related_person||'';$('v111Detail').value=seed?.cause_detail||'';active('[data-v111-type]','data-v111-type',state.type);active('[data-v111-kind]','data-v111-kind',state.kind);active('[data-v111-factory]','data-v111-factory',state.factory);active('[data-v111-cause]','data-v111-cause',state.cause);active('[data-v111-wh]','data-v111-wh',state.wh);$('v111Delivery').hidden=state.type!=='delivery';$('v111Warehouse').hidden=state.type!=='warehouse';$('v111RelatedCard').hidden=state.wh!=='Misshandling';$('v111').classList.add('show');document.body.style.overflow='hidden';await loadMaster();renderSizes();if(seed?.transporter){$('v111Vendor').value=seed.transporter;renderDrivers();$('v111Driver').value=seed.driver_name||'';}else if(!seed)restore();const badge=$('buildBadge');if(badge)badge.textContent='v111';}
-  function close(){if(busy)return;$('v111')?.classList.remove('show');document.body.style.overflow='';}
-  function takeover(){build();if($('newBtn'))$('newBtn').onclick=()=>open();if($('navInput'))$('navInput').onclick=()=>open();try{openInput=()=>open();window.openInput=openInput;}catch(_){ }try{const baseEdit=window.editIncident;window.editIncident=id=>{const row=(Array.isArray(INCIDENTS)?INCIDENTS:[]).find(x=>Number(x.incident_id)===Number(id));if(row)return open(row);return typeof baseEdit==='function'?baseEdit(id):undefined;};}catch(_){ }$('incidentModal')?.classList.remove('show');const badge=$('buildBadge');if(badge)badge.textContent='v111';}
+  async function open(seed=null){
+    if(!canInput()){alert('Akun ini tidak memiliki hak input breakage.');return;}
+    build();
+    const seq=++openSeq;
+    resetRevisionUi();
+
+    editId=seed?.incident_id||null;
+    const title=document.querySelector('#v111 .head h2');
+    if(title)title.textContent=editId?'Revisi Breakage':'Input Breakage';
+    if($('v111Ba'))$('v111Ba').value=seed?.no_ba||'AUTO / SETELAH SIMPAN';
+
+    state={
+      type:seed?.incident_type||'warehouse',
+      kind:up(seed?.product_kind||seed?.product_type||''),
+      size:String(seed?.product_size||''),
+      factory:up(seed?.factory||''),
+      cause:seed?.cause||'Packaging / Pallet',
+      wh:seed?.warehouse_event||'Pecah Dalam Pallet'
+    };
+
+    $('v111Rdc').value=seed?.rdc||rdc();
+    $('v111User').value=uid();
+    $('v111Who').textContent=up(ACCESS?.breakage_role||ACCESS?.role||'OPERATOR')+' · '+rdc();
+    $('v111Date').value=seed?.occurrence_date||new Date().toISOString().slice(0,10);
+    $('v111Item').value=seed?.item_code||'';
+    $('v111Series').value=seed?.ceramic_series||'';
+    $('v111Qty').value=seed?.qty_box||1;
+    $('v111Reported').value=seed?.reported_by||up(uid());
+    $('v111Sj').value=seed?.no_sj||'';
+    $('v111Customer').value=seed?.customer||'';
+    $('v111Receiver').value=seed?.ba_receiver_name||'';
+    $('v111Witness').value=seed?.ba_witness_name||'';
+    $('v111Related').value=seed?.related_person||'';
+    $('v111Detail').value=seed?.cause_detail||'';
+
+    active('[data-v111-type]','data-v111-type',state.type);
+    active('[data-v111-kind]','data-v111-kind',state.kind);
+    active('[data-v111-factory]','data-v111-factory',state.factory);
+    active('[data-v111-cause]','data-v111-cause',state.cause);
+    active('[data-v111-wh]','data-v111-wh',state.wh);
+    $('v111Delivery').hidden=state.type!=='delivery';
+    $('v111Warehouse').hidden=state.type!=='warehouse';
+    $('v111RelatedCard').hidden=state.wh!=='Misshandling';
+
+    $('v111').classList.add('show');
+    document.body.style.overflow='hidden';
+
+    await loadMaster();
+    if(seq!==openSeq)return;
+
+    renderSizes();
+    if(seed?.transporter){
+      $('v111Vendor').value=seed.transporter;
+      renderDrivers();
+      $('v111Driver').value=seed.driver_name||'';
+    }else if(!seed){
+      restore();
+    }
+
+    if(seed){
+      if($('v111Ba'))$('v111Ba').value=seed.no_ba||'—';
+      $('v111Date').value=seed.occurrence_date||'';
+      $('v111Item').value=seed.item_code||'';
+      $('v111Series').value=seed.ceramic_series||'';
+      $('v111Qty').value=seed.qty_box||1;
+      $('v111Reported').value=seed.reported_by||up(uid());
+    }
+
+    const badge=$('buildBadge');
+    if(badge)badge.textContent='v132';
+  }
+
+  function close(force=false){
+    if(busy&&!force)return;
+    openSeq++;
+    if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+    $('v111')?.classList.remove('show');
+    document.body.style.overflow='';
+    resetRevisionUi();
+  }
+
+  async function freshEdit(id,baseEdit){
+    const wanted=Number(id);
+    try{
+      const scope=rdc();
+      const period=String(PERIOD||new Date().toISOString().slice(0,7));
+      const fresh=await rpc111('breakage_incident_list',{p_period:period,p_rdc:scope});
+      if(Array.isArray(fresh)){
+        INCIDENTS=fresh;
+        const row=fresh.find(x=>Number(x.incident_id)===wanted);
+        if(row)return open({...row});
+      }
+    }catch(e){
+      console.warn('fresh revision row',e);
+    }
+
+    const row=(Array.isArray(INCIDENTS)?INCIDENTS:[]).find(x=>Number(x.incident_id)===wanted);
+    if(row)return open({...row});
+    return typeof baseEdit==='function'?baseEdit(id):undefined;
+  }
+
+  function takeover(){
+    build();
+    if($('newBtn'))$('newBtn').onclick=()=>open();
+    if($('navInput'))$('navInput').onclick=()=>open();
+    try{openInput=()=>open();window.openInput=openInput;}catch(_){ }
+    try{
+      const baseEdit=window.editIncident;
+      window.editIncident=id=>freshEdit(id,baseEdit);
+    }catch(_){ }
+    $('incidentModal')?.classList.remove('show');
+    const badge=$('buildBadge');
+    if(badge)badge.textContent='v132';
+  }
   [100,400,1000,2200].forEach(ms=>setTimeout(takeover,ms));
 })();
