@@ -200,9 +200,13 @@
     return path;
   }
   async function annotationMap(row){
-    const list=await rpc('breakage_photo_annotation_list_v133',{p_incident_id:Number(row.incident_id)})||[];
     const map=new Map();
-    (Array.isArray(list)?list:[]).forEach(x=>map.set(Number(x.photo_index),x));
+    try{
+      const list=await rpc('breakage_photo_annotation_list_v128',{p_incident_id:Number(row.incident_id)})||[];
+      (Array.isArray(list)?list:[]).forEach(x=>map.set(Number(x.photo_index),x));
+    }catch(e){
+      console.warn('annotation evidence lookup gagal; menu foto tetap ditampilkan',e);
+    }
     return map;
   }
 
@@ -216,7 +220,7 @@
       const blob=await canvasBlob();
       const newPath=await uploadEdited(blob,E.row,E.index);
       const reason=String($v('reviewNote')?.value||'').trim()||'Edit/annotasi foto oleh SPV untuk penandaan area pecah Accounting';
-      await rpc('breakage_photo_annotation_set_v133',{
+      await rpc('breakage_photo_annotation_set_v128',{
         p_incident_id:Number(E.row.incident_id),
         p_photo_index:Number(E.index),
         p_active_path:newPath,
@@ -241,7 +245,7 @@
     const msg=$v('reviewMsg');if(msg)msg.textContent='Menghapus foto dari evidence aktif…';
     try{
       const reason=String($v('reviewNote')?.value||'').trim()||'Hapus foto evidence oleh SPV untuk koreksi lampiran Accounting';
-      await rpc('breakage_photo_annotation_set_v133',{
+      await rpc('breakage_photo_annotation_set_v128',{
         p_incident_id:Number(row.incident_id),
         p_photo_index:Number(index),
         p_active_path:null,
@@ -342,6 +346,6 @@
     window.correctionHtml=wrappedCorrection;correctionHtml=wrappedCorrection;
   }catch(_){}
 
-  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v133';},ms));
-  window.__SLS_SPV_PHOTO_EDITOR='v133';
+  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v135';},ms));
+  window.__SLS_SPV_PHOTO_EDITOR='v135';
 })();
