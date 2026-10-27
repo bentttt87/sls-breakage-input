@@ -200,7 +200,7 @@
     return path;
   }
   async function annotationMap(row){
-    const list=await rpc('breakage_photo_annotation_list_v128',{p_incident_id:Number(row.incident_id)})||[];
+    const list=await rpc('breakage_photo_annotation_list_v133',{p_incident_id:Number(row.incident_id)})||[];
     const map=new Map();
     (Array.isArray(list)?list:[]).forEach(x=>map.set(Number(x.photo_index),x));
     return map;
@@ -216,7 +216,7 @@
       const blob=await canvasBlob();
       const newPath=await uploadEdited(blob,E.row,E.index);
       const reason=String($v('reviewNote')?.value||'').trim()||'Edit/annotasi foto oleh SPV untuk penandaan area pecah Accounting';
-      await rpc('breakage_photo_annotation_set_v128',{
+      await rpc('breakage_photo_annotation_set_v133',{
         p_incident_id:Number(E.row.incident_id),
         p_photo_index:Number(E.index),
         p_active_path:newPath,
@@ -241,7 +241,7 @@
     const msg=$v('reviewMsg');if(msg)msg.textContent='Menghapus foto dari evidence aktif…';
     try{
       const reason=String($v('reviewNote')?.value||'').trim()||'Hapus foto evidence oleh SPV untuk koreksi lampiran Accounting';
-      await rpc('breakage_photo_annotation_set_v128',{
+      await rpc('breakage_photo_annotation_set_v133',{
         p_incident_id:Number(row.incident_id),
         p_photo_index:Number(index),
         p_active_path:null,
@@ -268,18 +268,20 @@
     const map=await annotationMap(row);
     let activeCount=0;
 
-    for(let i=0;i<items.length&&i<paths.length;i++){
+    for(let i=0;i<items.length;i++){
       const node=items[i];
-      const ann=map.get(i);
+      const originalIndex=Number(node.dataset?.photoIndex ?? node.querySelector?.('[data-photo-index]')?.dataset?.photoIndex ?? i);
+      const ann=map.get(originalIndex);
       if(ann?.is_hidden===true){
         node.style.display='none';
         continue;
       }
 
       activeCount++;
-      const effectivePath=ann?.active_path||paths[i];
+      const originalPath=paths[originalIndex]||paths[i];
+      const effectivePath=ann?.active_path||originalPath;
 
-      if(effectivePath&&effectivePath!==paths[i]){
+      if(effectivePath&&effectivePath!==originalPath){
         try{
           const blob=await blobForPath(effectivePath);
           const url=URL.createObjectURL(blob);
@@ -295,14 +297,15 @@
 
       const card=document.createElement('div');
       card.className='spv-photo-card124';
+      card.dataset.photoIndex=String(originalIndex);
       node.replaceWith(card);
       card.appendChild(node);
 
       const actions=document.createElement('div');
       actions.className='spv-photo-actions124';
       actions.innerHTML='<button type="button">✎ Edit Foto</button><button type="button" class="danger124">Hapus Foto</button>';
-      actions.children[0].onclick=()=>openEditor(row,i,effectivePath);
-      actions.children[1].onclick=()=>deletePhoto(row,i);
+      actions.children[0].onclick=()=>openEditor(row,originalIndex,effectivePath);
+      actions.children[1].onclick=()=>deletePhoto(row,originalIndex);
       card.appendChild(actions);
     }
 
@@ -339,6 +342,6 @@
     window.correctionHtml=wrappedCorrection;correctionHtml=wrappedCorrection;
   }catch(_){}
 
-  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v128';},ms));
-  window.__SLS_SPV_PHOTO_EDITOR='v128';
+  [100,400,1000].forEach(ms=>setTimeout(()=>{ensureModal();const b=$v('buildBadge');if(b)b.textContent='v133';},ms));
+  window.__SLS_SPV_PHOTO_EDITOR='v133';
 })();
