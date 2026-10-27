@@ -111,6 +111,27 @@
   function active(sel,attr,val){document.querySelectorAll(sel).forEach(b=>b.classList.toggle('active',String(b.getAttribute(attr))===String(val)));}
   function sizes(kind){return (master.products.length?master.products:FALLBACK).filter(x=>up(x.product_type)===up(kind)).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>String(x.product_size||''));}
   function renderSizes(){const box=$('v111Sizes'); const rows=sizes(state.kind); if(!state.kind){state.size='';box.innerHTML='<span style="font-size:13px;color:#6d7d94">Pilih Jenis Produk dahulu.</span>';return;} if(!rows.length){state.size='';box.innerHTML='<span style="font-size:13px;color:#b42318">Size belum tersedia untuk jenis ini.</span>';return;} if(!rows.some(x=>up(x)===up(state.size))) state.size=''; box.innerHTML=rows.map(s=>`<button type="button" class="v111-chip ${up(s)===up(state.size)?'active':''}" data-v111-size="${esc(s)}">${esc(s)}</button>`).join(''); box.querySelectorAll('[data-v111-size]').forEach(b=>b.addEventListener('click',()=>{state.size=b.dataset.v111Size||'';renderSizes();}));}
+  function syncFactoryFromSeries(){
+    const s=up($('v111Series')?.value||'');
+    const inferred=s.startsWith('S')?'SRKI':s.startsWith('R')?'RCI':'';
+    const buttons=[...document.querySelectorAll('[data-v111-factory]')];
+    if(inferred){
+      state.factory=inferred;
+      active('[data-v111-factory]','data-v111-factory',state.factory);
+      buttons.forEach(b=>{b.disabled=true;b.title='Otomatis dari Nomor Seri / Batch';});
+    }else{
+      buttons.forEach(b=>{b.disabled=false;b.title='Pilih manual jika prefix Series bukan S/R';});
+    }
+    let help=$('v134FactoryHelp');
+    const host=buttons[0]?.closest('.v111-card');
+    if(host&&!help){
+      help=document.createElement('div');help.id='v134FactoryHelp';
+      help.style.cssText='font-size:12px;color:#60728a;margin-top:7px';
+      host.appendChild(help);
+    }
+    if(help)help.textContent=inferred?('Otomatis dari Series: '+inferred):'Series prefix S = SRKI, R = RCI. Jika prefix lain, pilih manual.';
+  }
+
   function renderDrivers(){const vendorName=$('v111Vendor').value;const vendor=master.vendors.find(v=>up(v.name)===up(vendorName));const rows=master.drivers.filter(d=>d.active!==false && ((vendor&&Number(d.vendor_id)===Number(vendor.id)) || up(d.vendor_name)===up(vendorName)));$('v111Driver').innerHTML='<option value="">'+(vendorName?'Pilih Driver / No Polisi':'Pilih Vendor dahulu')+'</option>'+rows.map(d=>`<option value="${esc(d.name||'')}" data-plate="${esc(d.plate||'')}">${esc(d.plate||'—')} - ${esc(d.name||'')}</option>`).join('');}
   async function loadMaster(){
     const [p,l]=await Promise.allSettled([rpc111('breakage_product_master_list_v94',{}),rpc111('logistics_master_list',{p_rdc:rdc()})]);
@@ -123,7 +144,7 @@
   function key(){return 'sls_breakage_v111_'+uid();}
   function data(){return {type:state.type,kind:state.kind,size:state.size,factory:state.factory,cause:state.cause,wh:state.wh,date:$('v111Date').value,item:up($('v111Item').value),series:up($('v111Series').value),qty:$('v111Qty').value,reported:up($('v111Reported').value),sj:up($('v111Sj').value),customer:up($('v111Customer').value),receiver:up($('v111Receiver').value),vendor:$('v111Vendor').value,driver:$('v111Driver').value,witness:up($('v111Witness').value),related:up($('v111Related').value),detail:up($('v111Detail').value)};}
   function saveDraft(show=true){try{localStorage.setItem(key(),JSON.stringify(data()));if(show)msg('Draft lokal tersimpan. Foto tidak disimpan pada draft lokal.','ok');}catch(_){if(show)msg('Draft lokal tidak dapat disimpan di browser ini.');}}
-  function restore(){try{const d=JSON.parse(localStorage.getItem(key())||'{}');if(!d||!Object.keys(d).length)return;state.type=d.type||'warehouse';state.kind=d.kind||'';state.size=d.size||'';state.factory=d.factory||'';state.cause=d.cause||'Packaging / Pallet';state.wh=d.wh||'Pecah Dalam Pallet';[['v111Date','date'],['v111Item','item'],['v111Series','series'],['v111Qty','qty'],['v111Reported','reported'],['v111Sj','sj'],['v111Customer','customer'],['v111Receiver','receiver'],['v111Witness','witness'],['v111Related','related'],['v111Detail','detail']].forEach(([id,k])=>{if(d[k]!==undefined&&$(id))$(id).value=d[k];});active('[data-v111-type]','data-v111-type',state.type);active('[data-v111-kind]','data-v111-kind',state.kind);active('[data-v111-factory]','data-v111-factory',state.factory);active('[data-v111-cause]','data-v111-cause',state.cause);active('[data-v111-wh]','data-v111-wh',state.wh);$('v111Delivery').hidden=state.type!=='delivery';$('v111Warehouse').hidden=state.type!=='warehouse';$('v111RelatedCard').hidden=state.wh!=='Misshandling';setTimeout(()=>{if(d.vendor){$('v111Vendor').value=d.vendor;renderDrivers();$('v111Driver').value=d.driver||'';}},50);}catch(_){}}
+  function restore(){try{const d=JSON.parse(localStorage.getItem(key())||'{}');if(!d||!Object.keys(d).length)return;state.type=d.type||'warehouse';state.kind=d.kind||'';state.size=d.size||'';state.factory=d.factory||'';state.cause=d.cause||'Packaging / Pallet';state.wh=d.wh||'Pecah Dalam Pallet';[['v111Date','date'],['v111Item','item'],['v111Series','series'],['v111Qty','qty'],['v111Reported','reported'],['v111Sj','sj'],['v111Customer','customer'],['v111Receiver','receiver'],['v111Witness','witness'],['v111Related','related'],['v111Detail','detail']].forEach(([id,k])=>{if(d[k]!==undefined&&$(id))$(id).value=d[k];});active('[data-v111-type]','data-v111-type',state.type);active('[data-v111-kind]','data-v111-kind',state.kind);active('[data-v111-factory]','data-v111-factory',state.factory);syncFactoryFromSeries();active('[data-v111-cause]','data-v111-cause',state.cause);active('[data-v111-wh]','data-v111-wh',state.wh);$('v111Delivery').hidden=state.type!=='delivery';$('v111Warehouse').hidden=state.type!=='warehouse';$('v111RelatedCard').hidden=state.wh!=='Misshandling';setTimeout(()=>{if(d.vendor){$('v111Vendor').value=d.vendor;renderDrivers();$('v111Driver').value=d.driver||'';}},50);}catch(_){}}
 
   async function addFiles(list){
     const incoming=Array.from(list||[]);
@@ -157,7 +178,8 @@
     $('v111Close').onclick=close;
     document.querySelectorAll('[data-v111-type]').forEach(b=>b.onclick=()=>{state.type=b.dataset.v111Type;active('[data-v111-type]','data-v111-type',state.type);$('v111Delivery').hidden=state.type!=='delivery';$('v111Warehouse').hidden=state.type!=='warehouse';});
     document.querySelectorAll('[data-v111-kind]').forEach(b=>b.onclick=()=>{state.kind=b.dataset.v111Kind;state.size='';active('[data-v111-kind]','data-v111-kind',state.kind);renderSizes();});
-    document.querySelectorAll('[data-v111-factory]').forEach(b=>b.onclick=()=>{state.factory=b.dataset.v111Factory;active('[data-v111-factory]','data-v111-factory',state.factory);});
+    document.querySelectorAll('[data-v111-factory]').forEach(b=>b.onclick=()=>{if(b.disabled)return;state.factory=b.dataset.v111Factory;active('[data-v111-factory]','data-v111-factory',state.factory);});
+    $('v111Series').addEventListener('input',syncFactoryFromSeries);
     document.querySelectorAll('[data-v111-cause]').forEach(b=>b.onclick=()=>{state.cause=b.dataset.v111Cause;active('[data-v111-cause]','data-v111-cause',state.cause);});
     document.querySelectorAll('[data-v111-wh]').forEach(b=>b.onclick=()=>{state.wh=b.dataset.v111Wh;active('[data-v111-wh]','data-v111-wh',state.wh);$('v111RelatedCard').hidden=state.wh!=='Misshandling';});
     $('v111Vendor').onchange=renderDrivers;
@@ -241,12 +263,13 @@
       $('v111Date').value=seed.occurrence_date||'';
       $('v111Item').value=seed.item_code||'';
       $('v111Series').value=seed.ceramic_series||'';
+      syncFactoryFromSeries();
       $('v111Qty').value=seed.qty_box||1;
       $('v111Reported').value=seed.reported_by||up(uid());
     }
 
     const badge=$('buildBadge');
-    if(badge)badge.textContent='v132';
+    if(badge)badge.textContent='v134';
   }
 
   function close(force=false){
@@ -289,7 +312,7 @@
     }catch(_){ }
     $('incidentModal')?.classList.remove('show');
     const badge=$('buildBadge');
-    if(badge)badge.textContent='v132';
+    if(badge)badge.textContent='v134';
   }
   [100,400,1000,2200].forEach(ms=>setTimeout(takeover,ms));
 })();
