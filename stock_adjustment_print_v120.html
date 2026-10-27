@@ -45,7 +45,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}th
   <button class="close" onclick="window.close()">Tutup</button>
   <button id="printBtn" class="print" disabled onclick="window.print()">🖨 Print / Save PDF</button>
 </div>
-<div class="note">Lampiran mengikuti pilihan pada form sebelum cetak. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai teks final tanpa dropdown.</div>
+<div class="note">Lampiran mengikuti data incident. Pabrik Asal menggunakan nilai incident; Series hanya fallback bila factory kosong. Filter Pabrik Asal pada form hanya menyaring data, tidak mengubah nilainya.</div>
 <main id="app"></main>
 <script>
 (async function(){
@@ -84,7 +84,7 @@ const photoRows=[];
      no_ba:x.no_ba||'',
      status_default:reportSettings.status_product_override||(String(x.incident_type||'').toLowerCase()==='warehouse'?'Pecah Gudang':'Pecah Kirim'),
      item_code:x.item_code||'',series:x.ceramic_series||'',
-     factory_default:reportSettings.factory_override||deriveFactory(x.ceramic_series)||x.factory||'',
+     factory_default:(['SRKI','RCI'].includes(up(x.factory))?up(x.factory):deriveFactory(x.ceramic_series)),
      motif_type:reportSettings.motif_type_override||x.motif_type||'Motif Standard',
      remark:x.cause_detail||''
    });
@@ -107,14 +107,14 @@ const detailRows=photoRows.map((r,i)=>{
 }).join('');
 
 document.getElementById('app').innerHTML=
-'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v124" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
+'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v134" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
 '<div style="font-size:11px;margin:-3mm 0 4mm"><div><b>Plant</b>&nbsp;&nbsp;&nbsp;&nbsp;: <span class="edit" contenteditable="true">'+esc(d.plant)+'</span></div><div><b>Periode</b> : '+esc(d.period_label)+'</div><div><b>Cut-off</b> : '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+'</div></div>'+
 '<table class="main-table"><thead><tr><th class="no">NO.</th><th class="material">MATERIAL GROUP<br>/ MOTIF</th><th class="kw">KW</th><th class="uom">UOM</th><th class="qty">IN</th><th class="qty">OUT</th><th>KETERANGAN</th></tr></thead><tbody>'+mainRows+totalRows+'</tbody></table>'+
 '<div class="signatures">'+sig.map(([role,name])=>'<div><div class="sig-role">'+esc(role)+'</div><div class="sig-space"></div><div class="sig-name edit" contenteditable="true">( '+esc(name||'____________________')+' )</div></div>').join('')+'</div>'+
 '<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
 '<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Cut-off '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · 1 foto = 1 baris.</div>'+
 '<table id="appendixTable"><thead><tr><th class="c-no">No</th><th class="c-ba">No BA</th><th class="c-status">Status Produk</th><th class="c-motif">Motif</th><th class="c-seri">Seri</th><th class="c-factory">Pabrik Asal</th><th class="c-type">Motif Type</th><th class="c-remark">Remark</th><th class="c-photo">Foto</th></tr></thead><tbody>'+detailRows+'</tbody></table>'+
-'<div class="rule-note"><b>Penyesuaian:</b> kolom Tanggal, Qty, Size, dan Pabrik lama dihapus. Status Produk, Pabrik Asal, dan Motif Type ditampilkan sebagai data final tanpa dropdown. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
+'<div class="rule-note"><b>Penyesuaian:</b> Pabrik Asal disinkronkan dengan data incident. Series hanya menjadi fallback bila factory kosong. Filter Pabrik Asal tidak mengubah nilai per BA. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
 
 let total=0,failed=0;
 for(let i=0;i<photoRows.length;i++){
