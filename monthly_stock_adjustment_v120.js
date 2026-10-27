@@ -73,7 +73,7 @@
               <div class="adj-field"><label>Status Retur ke Pabrik</label><select id="monthlyAdjReturn119"><option value="">Tidak dicantumkan</option><option value="SRKI">Sudah dikembalikan ke SRKI</option><option value="RCI">Sudah dikembalikan ke RCI</option><option value="SRKI & RCI">Sudah dikembalikan ke SRKI & RCI</option></select></div>
               <div class="adj-field"><label>Filter Motif Type</label><select id="monthlyAdjMotif119"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
               <div class="adj-field"><label>Status Produk</label><select id="monthlyAdjStatusProduct120"><option value="">Otomatis sesuai data</option><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></div>
-              <div class="adj-field"><label>Pabrik Asal</label><select id="monthlyAdjFactory120"><option value="">Otomatis dari Series (S/R)</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></div>
+              <div class="adj-field"><label>Filter Pabrik Asal</label><select id="monthlyAdjFactory120"><option value="">Semua Pabrik</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></div>
               <div class="adj-field"><label>Nama SPV / Inventory Control *</label><input id="monthlyAdjSpv120" placeholder="Sesuai branch"></div>
               <div class="adj-field"><label>Nama Senior Staff Warehouse</label><input id="monthlyAdjSenior119" placeholder="Sesuai branch"></div>
               <div class="adj-field adj-span2"><label>Keterangan Tambahan</label><textarea id="monthlyAdjExtra119" placeholder="Opsional"></textarea></div>
@@ -136,8 +136,15 @@
         const id=String(x.incident_id);if(seen.has(id))return false;seen.add(id);
         const dt=String(x.occurrence_date||'');return dt>=range.start&&dt<=range.end;
       });
+      const factoryOf=x=>{
+        const f=up(x.factory||'');
+        if(f==='SRKI'||f==='RCI')return f;
+        const s=up(x.ceramic_series||'');
+        return s.startsWith('S')?'SRKI':s.startsWith('R')?'RCI':'';
+      };
       const selected=all
         .filter(x=>String(x.motif_type||'Motif Standard').trim()===motifTypeOverride)
+        .filter(x=>!factoryOverride||factoryOf(x)===factoryOverride)
         .sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||String(x.no_ba||'').localeCompare(String(y.no_ba||''))||Number(x.incident_id)-Number(y.incident_id));
       if(!selected.length)throw new Error('Tidak ada data dengan Motif Type "'+motifTypeOverride+'" pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
 
@@ -153,21 +160,21 @@
       const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode '+monthLabel(p),'Cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end),$('monthlyAdjMotif119').value.trim()||'Motif Standard',$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
       saveSignatory({spv,senior});
       const payload={
-        version:'v128',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
+        version:'v134',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
         rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},
         incident_count:selected.length,verified_incident_count:verified.length,pending_incident_count:pending.length,
-        report_settings:{status_product_override:statusProductOverride,factory_override:factoryOverride,motif_type_override:motifTypeOverride},
+        report_settings:{status_product_override:statusProductOverride,factory_filter:factoryOverride,motif_type_override:motifTypeOverride},
         incidents:selected.map(x=>({
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
-          qty_box:Number(x.qty_box||0),uom:x.uom||'BOX',no_ba:x.no_ba,factory:x.factory,status:x.status,cause:x.cause,cause_detail:x.cause_detail,
+          qty_box:Number(x.qty_box||0),uom:x.uom||'BOX',no_ba:x.no_ba,factory:factoryOf(x),status:x.status,cause:x.cause,cause_detail:x.cause_detail,
           motif_type:x.motif_type||'Motif Standard',photo_paths:Array.isArray(effectiveMap[String(x.incident_id)])?effectiveMap[String(x.incident_id)]:(Array.isArray(x.photo_paths)?x.photo_paths:[])
         }))
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
       msg.className='small adj-ok';msg.textContent='Rekap siap: '+selected.length+' item '+motifTypeOverride+' · '+sourceBA.size+' BA'+(pending.length?' · '+pending.length+' item belum Approved SPV':'')+'. Membuka lampiran dengan foto…';
-      const w=window.open('/stock_adjustment_print_v120.html?v=20261021-v128&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
+      const w=window.open('/stock_adjustment_print_v120.html?v=20261027-v134&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
   }
