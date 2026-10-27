@@ -17,12 +17,19 @@
   function visible(el){if(!el)return false;const s=getComputedStyle(el);return s.display!=='none'&&s.visibility!=='hidden'&&el.getClientRects().length>0}
   function ensureFactory(){
     if(!isDelivery()||!$('conditional'))return;
-    const d=draft();let old=$('fFactory'),current=up(old?.value||d.factory||'');
-    if(!old){insertAfterField('fSj','<div class="field" id="factoryField87"><label>Pabrik Asal *</label><select id="fFactory"><option value="">Pilih Pabrik Asal</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select><div class="smallnote" id="factoryHelp87">Wajib pilih SRKI atau RCI.</div></div>');old=$('fFactory')}
+    const d=draft();let old=$('fFactory'),series=up($('fSeries')?.value||d.series||''),inferred=series.startsWith('S')?'SRKI':series.startsWith('R')?'RCI':'',current=inferred||up(old?.value||d.factory||'');
+    if(!old){insertAfterField('fSj','<div class="field" id="factoryField87"><label>Pabrik Asal *</label><select id="fFactory"><option value="">Pilih Pabrik Asal</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select><div class="smallnote" id="factoryHelp87"></div></div>');old=$('fFactory')}
     if(old&&old.tagName!=='SELECT'){
       const s=document.createElement('select');s.id='fFactory';s.innerHTML='<option value="">Pilih Pabrik Asal</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option>';old.replaceWith(s);old=s;
     }
-    if(old){if(![...old.options].some(o=>o.value==='SRKI'))old.innerHTML='<option value="">Pilih Pabrik Asal</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option>';if(['SRKI','RCI'].includes(current))old.value=current;old.onchange=()=>{clearFieldError('fFactory');try{saveDraft()}catch(_){}};}
+    if(old){
+      if(![...old.options].some(o=>o.value==='SRKI'))old.innerHTML='<option value="">Pilih Pabrik Asal</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option>';
+      if(['SRKI','RCI'].includes(current))old.value=current;
+      old.disabled=!!inferred;
+      const h=$('factoryHelp87');if(h)h.textContent=inferred?('Otomatis dari Series: '+inferred):'Series prefix S = SRKI, R = RCI. Prefix lain dipilih manual.';
+      old.onchange=()=>{clearFieldError('fFactory');try{saveDraft()}catch(_){}};
+      const seriesInput=$('fSeries');if(seriesInput&&!seriesInput.dataset.factorySync134){seriesInput.dataset.factorySync134='1';seriesInput.addEventListener('input',()=>{ensureFactory();try{saveDraft()}catch(_){}});}
+    }
   }
   function ensureVendorDriver(){
     if(!isDelivery())return;const d=draft();let v=$('fTransporter'),dr=$('fDriver');if(!v||!dr)return;
@@ -40,7 +47,7 @@
   function clearFieldError(id){const f=fieldOf(id);if(!f)return;f.style.borderColor='';f.style.boxShadow='';const n=f.querySelector('.v87-error');if(n)n.remove()}
   function markField(id,msg){const el=$(id),f=fieldOf(id);if(!el||!f)return;f.style.borderColor='#d92d20';f.style.boxShadow='0 0 0 2px rgba(217,45,32,.08)';let n=f.querySelector('.v87-error');if(!n){n=document.createElement('div');n.className='smallnote v87-error';n.style.color='#b42318';n.style.marginTop='5px';f.appendChild(n)}n.textContent=msg}
   async function ensureAll(){if(!isDelivery())return;await loadMaster();ensureFactory();ensureVendorDriver();try{bindDraftInputs()}catch(_){ }setBadge()}
-  function setBadge(){const b=$('buildBadge');if(b)b.textContent='v87'}
+  function setBadge(){const b=$('buildBadge');if(b)b.textContent='v134'}
   function schedule(){if(scheduled)return;scheduled=true;setTimeout(async()=>{scheduled=false;await ensureAll()},20)}
   function preflight(){
     if(!isDelivery())return true;ensureFactory();ensureVendorDriver();['fFactory','fTransporter','fDriver'].forEach(clearFieldError);
