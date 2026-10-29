@@ -85,7 +85,7 @@ const photoRows=[];
      status_default:reportSettings.status_product_override||(String(x.incident_type||'').toLowerCase()==='warehouse'?'Pecah Gudang':'Pecah Kirim'),
      item_code:x.item_code||'',series:x.ceramic_series||'',
      factory_default:(['SRKI','RCI'].includes(up(x.factory))?up(x.factory):deriveFactory(x.ceramic_series)),
-     motif_type:reportSettings.motif_type_override||x.motif_type||'Motif Standard',
+     motif_type:(reportSettings.motif_type_override&&reportSettings.motif_type_override!=='ALL'?reportSettings.motif_type_override:(x.motif_type||'Motif Standard')),
      remark:x.cause_detail||''
    });
  }
@@ -107,12 +107,12 @@ const detailRows=photoRows.map((r,i)=>{
 }).join('');
 
 document.getElementById('app').innerHTML=
-'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v134" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
-'<div style="font-size:11px;margin:-3mm 0 4mm"><div><b>Plant</b>&nbsp;&nbsp;&nbsp;&nbsp;: <span class="edit" contenteditable="true">'+esc(d.plant)+'</span></div><div><b>Periode</b> : '+esc(d.period_label)+'</div><div><b>Cut-off</b> : '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+'</div></div>'+
+'<section class="sheet"><div class="head"><div class="logo-crop"><img src="/brand_quadra_roman_v92.svg?v=v136" alt="ROMAN"></div><div class="title">PT. SATYA LANGGENG SENTOSA<br>FORM STOCK ADJUSMENT</div><div class="meta"><div class="meta-row"><span>Nomor</span><span>:</span><span class="edit" contenteditable="true">'+esc(d.document_no||'')+'</span></div><div class="meta-row"><span>Tanggal</span><span>:</span><span class="edit" contenteditable="true">'+esc(fd(d.document_date||''))+'</span></div></div></div>'+
+'<div style="font-size:11px;margin:-3mm 0 4mm"><div><b>Plant</b>&nbsp;&nbsp;&nbsp;&nbsp;: <span class="edit" contenteditable="true">'+esc(d.plant)+'</span></div><div><b>Periode Laporan</b> : '+esc(d.period_label)+'</div><div><b>Periode Data</b> : '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+'</div></div>'+
 '<table class="main-table"><thead><tr><th class="no">NO.</th><th class="material">MATERIAL GROUP<br>/ MOTIF</th><th class="kw">KW</th><th class="uom">UOM</th><th class="qty">IN</th><th class="qty">OUT</th><th>KETERANGAN</th></tr></thead><tbody>'+mainRows+totalRows+'</tbody></table>'+
 '<div class="signatures">'+sig.map(([role,name])=>'<div><div class="sig-role">'+esc(role)+'</div><div class="sig-space"></div><div class="sig-name edit" contenteditable="true">( '+esc(name||'____________________')+' )</div></div>').join('')+'</div>'+
-'<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
-'<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Cut-off '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · 1 foto = 1 baris.</div>'+
+'<div class="source"><span>Sumber: SLS Breakage Monitoring · '+esc(d.rdc)+'</span><span>'+Number(d.verified_incident_count||d.approved_incident_count||0)+' incident terverifikasi</span></div></section>'+
+'<section class="appendix"><h2>Lampiran List Breakage — '+esc(d.rdc)+' · '+esc(d.period_label)+'</h2><div class="sub">Periode Data '+esc(d.cutoff_start)+' s.d. '+esc(d.cutoff_end)+' · 1 foto = 1 baris.</div>'+
 '<table id="appendixTable"><thead><tr><th class="c-no">No</th><th class="c-ba">No BA</th><th class="c-status">Status Produk</th><th class="c-motif">Motif</th><th class="c-seri">Seri</th><th class="c-factory">Pabrik Asal</th><th class="c-type">Motif Type</th><th class="c-remark">Remark</th><th class="c-photo">Foto</th></tr></thead><tbody>'+detailRows+'</tbody></table>'+
 '<div class="rule-note"><b>Penyesuaian:</b> Pabrik Asal disinkronkan dengan data incident. Series hanya menjadi fallback bila factory kosong. Filter Pabrik Asal tidak mengubah nilai per BA. Remark mengambil persis Keterangan/Remark yang diinput user. Foto menyesuaikan lebar kolom.</div></section>';
 
@@ -146,7 +146,7 @@ excelBtn.onclick=async()=>{
    const wb=new ExcelJS.Workbook();wb.creator='SLS Breakage Monitoring';wb.created=new Date();
    const ws=wb.addWorksheet('Lampiran Breakage',{pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9}});
    ws.mergeCells('A1:I1');ws.getCell('A1').value='Lampiran List Breakage — '+d.rdc+' · '+d.period_label;ws.getCell('A1').font={bold:true,size:14};
-   ws.mergeCells('A2:I2');ws.getCell('A2').value='Cut-off '+d.cutoff_start+' s.d. '+d.cutoff_end+' · 1 foto = 1 baris';
+   ws.mergeCells('A2:I2');ws.getCell('A2').value='Periode Data '+d.cutoff_start+' s.d. '+d.cutoff_end+' · 1 foto = 1 baris';
    ws.getCell('A2').font={italic:true,size:9,color:{argb:'FF666666'}};
    const headers=['No','No BA','Status Produk','Motif','Seri','Pabrik Asal','Motif Type','Remark','Foto'];
    const hr=ws.addRow(headers);hr.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17365D'}};c.alignment={horizontal:'center',vertical:'middle'};c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}});
