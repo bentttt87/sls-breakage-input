@@ -1,4 +1,4 @@
-// SLS Breakage Input v120 — monthly Stock Adjustment with cutoff 21-20 and inline photo appendix.
+// SLS Breakage Input v136 — monthly Stock Adjustment with manual data period and inline photo appendix.
 (function(){
   'use strict';
   if(window.__SLS_MONTHLY_STOCK_ADJ_V120__) return;
@@ -16,7 +16,20 @@
   function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
   function monthLabel(p){const [y,m]=String(p||'').split('-').map(Number);return (MONTHS[m-1]||'')+' '+y}
   function prevMonth(p){const [y,m]=p.split('-').map(Number),d=new Date(y,m-2,1);return ym(d)}
-  function cutoffRange(p){const [y,m]=p.split('-').map(Number);const end=y+'-'+String(m).padStart(2,'0')+'-20';const d=new Date(y,m-2,21);const start=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-21';return {start,end}}
+  function monthsBetween(start,end){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||start>end)return [];
+    const [sy,sm]=start.slice(0,7).split('-').map(Number),[ey,em]=end.slice(0,7).split('-').map(Number);
+    const out=[];let y=sy,m=sm;
+    while(y<ey||(y===ey&&m<=em)){
+      out.push(y+'-'+String(m).padStart(2,'0'));
+      m++;if(m>12){m=1;y++}
+      if(out.length>36)break;
+    }
+    return out;
+  }
+  function rangeKey(){return 'sls_breakage_stock_adj_range_v136_'+(RDC_CODE[rdc()]||up(rdc())||'RDC')}
+  function savedRange(){try{return JSON.parse(localStorage.getItem(rangeKey())||'{}')||{}}catch(_){return {}}}
+  function saveRange(v){try{localStorage.setItem(rangeKey(),JSON.stringify(v))}catch(_){}}
   function fmtId(v){return String(v||'').replace(/-/g,'/')}
   function currentReportMonth(){const d=new Date(); if(d.getDate()<=20)return ym(d);d.setMonth(d.getMonth()+1);return ym(d)}
   function romanMonth(m){return ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][m-1]||String(m)}
@@ -62,16 +75,18 @@
       document.body.insertAdjacentHTML('beforeend',`
       <div id="monthlyAdjModal119" class="overlay" aria-hidden="true">
         <div class="modal">
-          <div class="modal-head"><div><h2>Print Stock Adjustment Bulanan</h2><div class="small" style="opacity:.82">Cut-off tanggal 20 · foto langsung di lampiran</div></div><div class="grow"></div><button class="close" id="monthlyAdjClose119" type="button">✕</button></div>
+          <div class="modal-head"><div><h2>Print Stock Adjustment Bulanan</h2><div class="small" style="opacity:.82">Periode data dipilih manual · foto langsung di lampiran</div></div><div class="grow"></div><button class="close" id="monthlyAdjClose119" type="button">✕</button></div>
           <div class="modal-body">
-            <div class="adj-note"><b>Periode:</b> tanggal 21 bulan sebelumnya s.d. tanggal 20 bulan laporan. Contoh Oktober 2026 = 21 Sep–20 Okt 2026.</div>
+            <div class="adj-note"><b>Periode Data:</b> pilih sendiri Tanggal Mulai dan Tanggal Akhir. Bulan Laporan hanya menjadi label dokumen; periode tarikan data tidak otomatis mengikuti tanggal 21–20.</div>
             <div class="adj-grid" style="margin-top:11px">
               <div class="adj-field"><label>Bulan Laporan *</label><input id="monthlyAdjPeriod119" type="month"></div>
               <div class="adj-field"><label>Tanggal Dokumen *</label><input id="monthlyAdjDate119" type="date"></div>
+              <div class="adj-field"><label>Tanggal Mulai Data *</label><input id="monthlyAdjStart136" type="date"></div>
+              <div class="adj-field"><label>Tanggal Akhir Data *</label><input id="monthlyAdjEnd136" type="date"></div>
               <div class="adj-field"><label>Plant</label><input id="monthlyAdjPlant119"></div>
               <div class="adj-field"><label>Nomor Stock Adjustment</label><input id="monthlyAdjNo119"></div>
               <div class="adj-field"><label>Status Retur ke Pabrik</label><select id="monthlyAdjReturn119"><option value="">Tidak dicantumkan</option><option value="SRKI">Sudah dikembalikan ke SRKI</option><option value="RCI">Sudah dikembalikan ke RCI</option><option value="SRKI & RCI">Sudah dikembalikan ke SRKI & RCI</option></select></div>
-              <div class="adj-field"><label>Filter Motif Type</label><select id="monthlyAdjMotif119"><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
+              <div class="adj-field"><label>Filter Motif Type</label><select id="monthlyAdjMotif119"><option value="ALL">Semua Motif</option><option value="Motif Standard">Motif Standard</option><option value="Motif TP">Motif TP</option></select></div>
               <div class="adj-field"><label>Status Produk</label><select id="monthlyAdjStatusProduct120"><option value="">Otomatis sesuai data</option><option value="Pecah Kirim">Pecah Kirim</option><option value="Pecah Gudang">Pecah Gudang</option></select></div>
               <div class="adj-field"><label>Filter Pabrik Asal</label><select id="monthlyAdjFactory120"><option value="">Semua Pabrik</option><option value="SRKI">SRKI</option><option value="RCI">RCI</option></select></div>
               <div class="adj-field"><label>Nama SPV / Inventory Control *</label><input id="monthlyAdjSpv120" placeholder="Sesuai branch"></div>
@@ -85,23 +100,34 @@
         </div>
       </div>`);
       $('monthlyAdjClose119').onclick=closeModal;$('monthlyAdjCancel119').onclick=closeModal;$('monthlyAdjPrint119').onclick=buildReport;
-      $('monthlyAdjPeriod119').onchange=syncPeriod;
+      $('monthlyAdjPeriod119').onchange=syncPeriod;$('monthlyAdjStart136').onchange=syncRange;$('monthlyAdjEnd136').onchange=syncRange;
     }
-    const badge=$('buildBadge');if(badge)badge.textContent='v124';
+    const badge=$('buildBadge');if(badge)badge.textContent='v136';
   }
 
+  function syncRange(){
+    const start=$('monthlyAdjStart136')?.value||'',end=$('monthlyAdjEnd136')?.value||'',p=$('monthlyAdjPeriod119')?.value||'';
+    const label=/^\d{4}-\d{2}$/.test(p)?monthLabel(p):'';
+    if(start&&end){
+      $('monthlyAdjRange119').textContent=(start<=end?'Periode Data ':'⚠ Tanggal Mulai lebih besar dari Tanggal Akhir: ')+fmtId(start)+' s.d. '+fmtId(end)+(label?' · label '+label:'');
+    }else{
+      $('monthlyAdjRange119').textContent='Pilih Tanggal Mulai dan Tanggal Akhir data secara manual'+(label?' · label '+label:'');
+    }
+  }
   function syncPeriod(){
     const p=$('monthlyAdjPeriod119')?.value;if(!/^\d{4}-\d{2}$/.test(p))return;
-    const [y,m]=p.split('-').map(Number),r=cutoffRange(p);
+    const [y,m]=p.split('-').map(Number);
     $('monthlyAdjNo119').value='ADJ/'+(RDC_CODE[rdc()]||'RDC')+'/'+romanMonth(m)+'/'+y;
-    $('monthlyAdjRange119').textContent='Cut-off '+fmtId(r.start)+' s.d. '+fmtId(r.end)+' · label '+monthLabel(p);
+    syncRange();
   }
   function openModal(){
     if(!isSpv())return;ensureUi();
-    const p=currentReportMonth(),sg=savedSignatory();
+    const p=currentReportMonth(),sg=savedSignatory(),rg=savedRange();
     $('monthlyAdjPeriod119').value=p;$('monthlyAdjDate119').value=new Date().toISOString().slice(0,10);
+    $('monthlyAdjStart136').value=/^\d{4}-\d{2}-\d{2}$/.test(rg.start||'')?rg.start:'';
+    $('monthlyAdjEnd136').value=/^\d{4}-\d{2}-\d{2}$/.test(rg.end||'')?rg.end:'';
     $('monthlyAdjPlant119').value='RDC '+(RDC_CODE[rdc()]||up(rdc()).slice(0,3));
-    $('monthlyAdjReturn119').value='';$('monthlyAdjMotif119').value='Motif Standard';
+    $('monthlyAdjReturn119').value='';$('monthlyAdjMotif119').value='ALL';
     $('monthlyAdjStatusProduct120').value='';$('monthlyAdjFactory120').value='';$('monthlyAdjExtra119').value='';
     $('monthlyAdjSpv120').value=sg.spv||'';$('monthlyAdjSenior119').value=sg.senior||'';
     $('monthlyAdjMsg119').textContent='';syncPeriod();
@@ -117,24 +143,31 @@
 
   async function buildReport(){
     const msg=$('monthlyAdjMsg119'),btn=$('monthlyAdjPrint119'),p=$('monthlyAdjPeriod119').value,docDate=$('monthlyAdjDate119').value;
+    const start=$('monthlyAdjStart136').value,end=$('monthlyAdjEnd136').value;
     const spv=$('monthlyAdjSpv120').value.trim(),senior=$('monthlyAdjSenior119').value.trim();
     const statusProductOverride=$('monthlyAdjStatusProduct120').value;
     const factoryOverride=$('monthlyAdjFactory120').value;
-    const motifTypeOverride=$('monthlyAdjMotif119').value||'Motif Standard';
-    if(!/^\d{4}-\d{2}$/.test(p)||!docDate||!spv){msg.className='small adj-err119';msg.textContent='Bulan laporan, tanggal dokumen, dan nama SPV wajib diisi.';return}
-    btn.disabled=true;msg.className='small';msg.textContent='Mengambil data cut-off dan foto evidence…';
+    const motifTypeOverride=$('monthlyAdjMotif119').value||'ALL';
+    if(!/^\d{4}-\d{2}$/.test(p)||!docDate||!start||!end||!spv){msg.className='small adj-err119';msg.textContent='Bulan laporan, tanggal dokumen, tanggal mulai, tanggal akhir, dan nama SPV wajib diisi.';return}
+    if(start>end){msg.className='small adj-err119';msg.textContent='Tanggal Mulai tidak boleh lebih besar dari Tanggal Akhir.';return}
+    const months=monthsBetween(start,end);
+    if(!months.length){msg.className='small adj-err119';msg.textContent='Periode data tidak valid.';return}
+    btn.disabled=true;msg.className='small';msg.textContent='Mengambil data periode '+fmtId(start)+' s.d. '+fmtId(end)+' dan foto evidence…';
     try{
-      const prev=prevMonth(p),range=cutoffRange(p);
-      const [a,b,mapPrev,mapCurr]=await Promise.all([
-        rpc('breakage_incident_list',{p_period:prev,p_rdc:rdc()}),
-        rpc('breakage_incident_list',{p_period:p,p_rdc:rdc()}),
-        rpc('breakage_photo_effective_map_v128',{p_period:prev,p_rdc:rdc()}),
-        rpc('breakage_photo_effective_map_v128',{p_period:p,p_rdc:rdc()})
-      ]);
-      const effectiveMap={...(mapPrev||{}),...(mapCurr||{})};
-      const seen=new Set(),all=[...(a||[]),...(b||[])].filter(x=>{
+      const tasks=[];
+      months.forEach(m=>{
+        tasks.push(rpc('breakage_incident_list',{p_period:m,p_rdc:rdc()}));
+        tasks.push(rpc('breakage_photo_effective_map_v128',{p_period:m,p_rdc:rdc()}));
+      });
+      const raw=await Promise.all(tasks);
+      const incidentBatches=[],effectiveMap={};
+      for(let i=0;i<months.length;i++){
+        incidentBatches.push(...(Array.isArray(raw[i*2])?raw[i*2]:[]));
+        Object.assign(effectiveMap,raw[i*2+1]||{});
+      }
+      const seen=new Set(),all=incidentBatches.filter(x=>{
         const id=String(x.incident_id);if(seen.has(id))return false;seen.add(id);
-        const dt=String(x.occurrence_date||'');return dt>=range.start&&dt<=range.end;
+        const dt=String(x.occurrence_date||'');return dt>=start&&dt<=end;
       });
       const factoryOf=x=>{
         const f=up(x.factory||'');
@@ -143,10 +176,10 @@
         return s.startsWith('S')?'SRKI':s.startsWith('R')?'RCI':'';
       };
       const selected=all
-        .filter(x=>String(x.motif_type||'Motif Standard').trim()===motifTypeOverride)
+        .filter(x=>motifTypeOverride==='ALL'||String(x.motif_type||'Motif Standard').trim()===motifTypeOverride)
         .filter(x=>!factoryOverride||factoryOf(x)===factoryOverride)
         .sort((x,y)=>String(x.occurrence_date).localeCompare(String(y.occurrence_date))||String(x.no_ba||'').localeCompare(String(y.no_ba||''))||Number(x.incident_id)-Number(y.incident_id));
-      if(!selected.length)throw new Error('Tidak ada data dengan Motif Type "'+motifTypeOverride+'" pada cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end)+'.');
+      if(!selected.length)throw new Error('Tidak ada data pada periode '+fmtId(start)+' s.d. '+fmtId(end)+(motifTypeOverride==='ALL'?'':' untuk Motif Type "'+motifTypeOverride+'"')+'.');
 
       const verified=selected.filter(x=>PRINTABLE_STATUS.has(up(x.status)));
       const pending=selected.filter(x=>!PRINTABLE_STATUS.has(up(x.status)));
@@ -157,14 +190,15 @@
       if(sourceBA.size!==reportBA.size)throw new Error('Validasi BA gagal: ada BA sumber yang tidak masuk ke lampiran.');
 
       const rows=groupRows(selected),box=rows.filter(x=>x.uom==='BOX').reduce((s,x)=>s+Number(x.out_qty||0),0),pcs=rows.filter(x=>x.uom==='PCS').reduce((s,x)=>s+Number(x.out_qty||0),0);
-      const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode '+monthLabel(p),'Cut-off '+fmtId(range.start)+' s.d. '+fmtId(range.end),$('monthlyAdjMotif119').value.trim()||'Motif Standard',$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
-      saveSignatory({spv,senior});
+      const motifLabel=motifTypeOverride==='ALL'?'Semua Motif':motifTypeOverride;
+      const ket=['Barang pecah RDC '+rdc(),$('monthlyAdjReturn119').value?('Sudah dikembalikan ke '+$('monthlyAdjReturn119').value):'','Periode Laporan '+monthLabel(p),'Periode Data '+fmtId(start)+' s.d. '+fmtId(end),motifLabel,$('monthlyAdjExtra119').value.trim(),'(List dan foto terlampir)'].filter(Boolean).join('\n');
+      saveSignatory({spv,senior});saveRange({start,end});
       const payload={
-        version:'v134',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:range.start,cutoff_end:range.end,
+        version:'v136',generated_at:new Date().toISOString(),rdc:rdc(),period:p,period_label:monthLabel(p),cutoff_start:start,cutoff_end:end,
         plant:$('monthlyAdjPlant119').value.trim()||('RDC '+(RDC_CODE[rdc()]||rdc())),document_no:$('monthlyAdjNo119').value.trim(),document_date:docDate,
         rows,total_box:box,total_pcs:pcs,keterangan:ket,signatory:{spv,senior},
         incident_count:selected.length,verified_incident_count:verified.length,pending_incident_count:pending.length,
-        report_settings:{status_product_override:statusProductOverride,factory_filter:factoryOverride,motif_type_override:motifTypeOverride},
+        report_settings:{status_product_override:statusProductOverride,factory_filter:factoryOverride,motif_type_override:motifTypeOverride,motif_type_label:motifLabel,manual_date_range:true},
         incidents:selected.map(x=>({
           incident_id:x.incident_id,incident_no:x.incident_no,occurrence_date:x.occurrence_date,incident_type:x.incident_type,
           item_code:x.item_code,ceramic_series:x.ceramic_series,product_kind:x.product_kind,product_type:x.product_type,product_size:x.product_size,
@@ -173,8 +207,8 @@
         }))
       };
       const key='sls_monthly_stock_adj_v120_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(payload));
-      msg.className='small adj-ok';msg.textContent='Rekap siap: '+selected.length+' item '+motifTypeOverride+' · '+sourceBA.size+' BA'+(pending.length?' · '+pending.length+' item belum Approved SPV':'')+'. Membuka lampiran dengan foto…';
-      const w=window.open('/stock_adjustment_print_v120.html?v=20261027-v134&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
+      msg.className='small adj-ok';msg.textContent='Rekap siap: '+selected.length+' item · '+motifLabel+' · '+sourceBA.size+' BA · '+fmtId(start)+' s.d. '+fmtId(end)+(pending.length?' · '+pending.length+' item belum Approved SPV':'')+'. Membuka lampiran dengan foto…';
+      const w=window.open('/stock_adjustment_print_v120.html?v=20261029-v136&k='+encodeURIComponent(key),'_blank');if(!w)throw new Error('Popup diblokir browser. Izinkan popup lalu coba lagi.');
     }catch(e){msg.className='small adj-err119';msg.textContent='Gagal: '+String(e?.message||e)}
     finally{btn.disabled=false}
   }
