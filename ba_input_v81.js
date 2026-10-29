@@ -63,8 +63,10 @@
   const baseCorrectionHtml=correctionHtml;
   correctionHtml=function(r){let html=baseCorrectionHtml.apply(this,arguments);if(String(r?.incident_type||'').toLowerCase()==='delivery'){html=html.replace('</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">','<div class="field"><label>Nama Penerima BA</label><input id="cReceiver" value="'+esc2(r.ba_receiver_name||'')+'"></div><div class="field"><label>Saksi Pemeriksa</label><input id="cWitness" value="'+esc2(r.ba_witness_name||'')+'"></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">');}return html;};
 
-  const baseRenderHistory=renderHistory;
-  renderHistory=function(){const r=baseRenderHistory.apply(this,arguments);const trs=[...(get('historyBody')?.querySelectorAll('tr')||[])];incidentRows().slice(0,60).forEach((x,i)=>{if(String(x.incident_type||'').toLowerCase()!=='delivery'||!trs[i])return;const td=trs[i].lastElementChild;if(!td||td.querySelector('[data-print-ba]'))return;const b=document.createElement('button');b.className='mini';b.dataset.printBa='1';b.textContent='🖨 Print BA';b.onclick=()=>openPrint({rdc:x.rdc,date:x.occurrence_date,item:x.item_code,series:x.ceramic_series,qty:x.qty_box,sj:x.no_sj,factory:x.factory,customer:x.customer,receiver:x.ba_receiver_name,transporter:x.transporter,driver:x.driver_name,police:x.vehicle_no,witness:x.ba_witness_name,cause:x.cause,detail:x.cause_detail,incident_id:x.incident_id,incident_no:x.incident_no,no_ba:x.no_ba,status:x.status});td.appendChild(b);});return r;};
+  // Riwayat Insiden: tombol Print BA hanya dirender oleh spv_review_v83.js.
+  // Modul ini tetap menyediakan Print BA pada modal sukses setelah BA baru disimpan.
+  // Satu renderer mencegah tombol duplikat dan handler ganda.
+
 
   ensureSuccessModal();setBuild();[100,350,900].forEach(ms=>setTimeout(()=>{setBuild();ensureBaFields();},ms));
 })();
