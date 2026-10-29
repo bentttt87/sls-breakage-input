@@ -150,7 +150,12 @@
     const trs=[...($v('historyBody')?.querySelectorAll('tr')||[])];
     rows().forEach((r,i)=>{
       if(!trs[i]||String(r.incident_type||'').toLowerCase()!=='delivery')return;
-      const td=trs[i].lastElementChild;if(!td||td.querySelector('[data-spv-print-v83]'))return;
+      const td=trs[i].lastElementChild;if(!td)return;
+      // Cleanup tombol Print BA legacy/duplikat sebelum render tombol canonical.
+      td.querySelectorAll('[data-print-ba]').forEach(x=>x.remove());
+      const existing=[...td.querySelectorAll('[data-spv-print-v83]')];
+      existing.slice(1).forEach(x=>x.remove());
+      if(existing[0])return;
       const b=document.createElement('button');b.className='mini';b.dataset.spvPrintV83='1';b.textContent='🖨 Print BA';b.onclick=()=>printGroup(r);td.appendChild(b);
     });
     return result;
