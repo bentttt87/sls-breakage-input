@@ -118,17 +118,18 @@
   };
 
   function printGroup(row){
-    const group=rows().filter(x=>String(x.incident_type||'').toLowerCase()==='delivery' && (row.no_ba?up(x.no_ba)===up(row.no_ba):(up(x.no_sj)===up(row.no_sj)&&up(x.rdc)===up(row.rdc))));
+    const kind=String(row.incident_type||'').toLowerCase();
+    const group=rows().filter(x=>String(x.incident_type||'').toLowerCase()===kind && (row.no_ba?up(x.no_ba)===up(row.no_ba):Number(x.incident_id)===Number(row.incident_id)));
     const items=group.length?group:[row];
-    const data={rdc:row.rdc,occurrence_date:row.occurrence_date,no_sj:row.no_sj,factory:row.factory,customer:row.customer,receiver_name:row.ba_receiver_name,transporter:row.transporter,driver_name:row.driver_name,vehicle_no:row.vehicle_no,witness_name:row.ba_witness_name,items};
+    const data={incident_type:kind,rdc:row.rdc,occurrence_date:row.occurrence_date,no_sj:row.no_sj,factory:row.factory,customer:row.customer,receiver_name:kind==='warehouse'?(row.reported_by||row.ba_receiver_name):row.ba_receiver_name,transporter:row.transporter,driver_name:kind==='warehouse'?(row.related_person||''):row.driver_name,vehicle_no:row.vehicle_no,witness_name:row.ba_witness_name,items};
     const key='sls_ba_print_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem(key,JSON.stringify(data));
     const w=window.open('/ba_print.html?k='+encodeURIComponent(key),'_blank');if(!w)alert('Popup diblokir browser. Izinkan popup untuk mencetak BA.');
   }
   function showReviewPrint(row){
     let bar=$v('spvBaPrintBar');
     if(!bar){bar=document.createElement('div');bar.id='spvBaPrintBar';bar.className='hint';bar.style.marginTop='10px';const details=$v('reviewDetails');if(details)details.insertAdjacentElement('afterend',bar);}
-    if(String(row?.incident_type||'').toLowerCase()==='delivery'){
-      bar.style.display='flex';bar.style.alignItems='center';bar.style.justifyContent='space-between';bar.style.gap='8px';bar.innerHTML='<span><b>BA Pengiriman</b><br><span class="smallnote">No BA '+escv(row.no_ba||'—')+' · Print tersedia untuk Pecah Kiriman.</span></span><button class="primary" id="spvPrintBaBtn" type="button">🖨 Print BA</button>';
+    if(['delivery','warehouse'].includes(String(row?.incident_type||'').toLowerCase())){
+      bar.style.display='flex';bar.style.alignItems='center';bar.style.justifyContent='space-between';bar.style.gap='8px';bar.innerHTML='<span><b>BA '+(String(row.incident_type).toLowerCase()==='warehouse'?'Pecah Pallet':'Pecah Kirim')+'</b><br><span class="smallnote">No BA '+escv(row.no_ba||'—')+' · Cetak sesuai jenis kejadian.</span></span><button class="primary" id="spvPrintBaBtn" type="button">🖨 Print BA</button>';
       $v('spvPrintBaBtn').onclick=()=>printGroup(row);
     }else{
       bar.style.display='none';bar.innerHTML='';
@@ -149,14 +150,14 @@
     const result=baseRenderHistory.apply(this,arguments);
     const trs=[...($v('historyBody')?.querySelectorAll('tr')||[])];
     rows().forEach((r,i)=>{
-      if(!trs[i]||String(r.incident_type||'').toLowerCase()!=='delivery')return;
+      if(!trs[i]||!['delivery','warehouse'].includes(String(r.incident_type||'').toLowerCase()))return;
       const td=trs[i].lastElementChild;if(!td)return;
       // Cleanup tombol Print BA legacy/duplikat sebelum render tombol canonical.
       td.querySelectorAll('[data-print-ba]').forEach(x=>x.remove());
       const existing=[...td.querySelectorAll('[data-spv-print-v83]')];
       existing.slice(1).forEach(x=>x.remove());
       if(existing[0])return;
-      const b=document.createElement('button');b.className='mini';b.dataset.spvPrintV83='1';b.textContent='🖨 Print BA';b.onclick=()=>printGroup(r);td.appendChild(b);
+      const b=document.createElement('button');b.className='mini';b.dataset.spvPrintV83='1';b.textContent='🖨 Print BA';b.type='button';b.disabled=!r.no_ba;b.title=r.no_ba?'Cetak Berita Acara '+(String(r.incident_type).toLowerCase()==='warehouse'?'Pecah Pallet':'Pecah Kirim'):'Nomor BA belum tersedia';b.onclick=()=>printGroup(r);td.appendChild(b);
     });
     return result;
   };
