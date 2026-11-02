@@ -4,7 +4,7 @@
 'use strict';
 if(window.__SLS_NATIVE_FREEZE_140__)return;
 window.__SLS_NATIVE_FREEZE_140__=true;
-const styles=String.raw\`
+const styles=String.raw`
 #slsFreezeBar139,.sls-freeze-bar{display:none!important}
 .app .panel:has(#historyBody){overflow:clip!important}
 .app .panel:has(#historyBody) .tablewrap{overflow:visible!important}
@@ -65,7 +65,7 @@ order:6;flex:1 1 100%;min-width:0!important}
 @media(max-width:480px){#slsNativeStats140{display:none}
 .app .panel:has(#historyBody) .panel-head h3{font-size:15px!important}
 #slsNativeRdc140{flex-basis:100px}}
-\`;
+`;
 function init(){
 const app=document.getElementById('app');
 const top=document.querySelector('.app .topbar');
