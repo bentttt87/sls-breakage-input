@@ -15,6 +15,24 @@
           const items=Array.isArray(data?.items)?data.items:[];
           const type=String(data?.incident_type||items[0]?.incident_type||'delivery').toLowerCase();
           const h=d.querySelector('.title h1');if(h)h.textContent=type==='warehouse'?'BERITA ACARA PECAH PALLET':'BERITA ACARA PECAH KIRIM';
+
+          if(type==='warehouse'){
+            d.querySelectorAll('.meta tr').forEach(tr=>{
+              const label=tr.querySelector('.l');
+              if(!label)return;
+              const name=(label.textContent||'').trim();
+              if(['No. Surat Jalan','Nama Ekspedisi','Nama Pengemudi','No. Polisi Armada'].includes(name)){tr.style.display='none';return;}
+              if(name==='Nama Penerima')label.textContent='Pelapor / Petugas';
+            });
+            const sigs=d.querySelectorAll('.sigbox');
+            if(sigs[0]?.querySelector('.sig-title'))sigs[0].querySelector('.sig-title').textContent='Pihak I (Pelapor / Petugas Gudang)';
+            if(sigs[1]?.querySelector('.sig-title'))sigs[1].querySelector('.sig-title').textContent='Pihak II (Petugas Terkait)';
+            const charge=d.querySelector('.charge-title');
+            if(charge)charge.textContent='Tindak lanjut atau pembebanan kerusakan ditentukan setelah pemeriksaan SPV.';
+            const options=d.querySelectorAll('.charge-option');
+            if(options[1]){const span=options[1].querySelector('span:last-child');if(span)span.textContent='Perlu Review';}
+          }
+
           const reps=[['KEPECAHAN PENGIRIMAN','PECAH KIRIM'],['PECAH PENGIRIMAN','PECAH KIRIM'],['PECAH GUDANG','PECAH PALLET'],['Pecah Pengiriman','Pecah Kirim'],['Pecah Gudang','Pecah Pallet']];
           const walker=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
           nodes.forEach(n=>{if(n.parentElement&&['SCRIPT','STYLE'].includes(n.parentElement.tagName))return;let v=n.nodeValue;reps.forEach(([a,b])=>v=v.split(a).join(b));if(v!==n.nodeValue)n.nodeValue=v;});
